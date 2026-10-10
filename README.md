@@ -24,7 +24,8 @@ npm run build
 | `app/[lang]/page.tsx` | Section order |
 | `components/*.tsx` | One file per section |
 | `components/MotionEngine.tsx` | The single rAF loop: smoothed scroll, sticky-section effects, reveals and the contact arc |
-| `lib/fluid.ts` | Pointer smoke: a small GPU fluid solver (advection, pressure, vorticity) that only runs while there is movement |
+| `lib/sky.ts` | The sky: a backlit NASA Blue Marble globe with aurora on its limb (hero), then a faint drifting aurora band behind the rest of the page |
+| `public/earth/` | Globe textures packed from NASA Blue Marble + cloud imagery (R = surface, G = clouds, B = land mask) |
 | `lib/ribbon.ts` | The contact section's arc ribbon (the design prototype's shader) |
 | `components/DetailSheet.tsx`, `DetailController.tsx` | Glass detail cards (`<dialog>`) for projects and certificates |
 | `public/projects/` | Laptop screenshots (16:10 crops from the top) |

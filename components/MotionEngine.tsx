@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import { withBase } from "@/lib/paths";
 import { createArc, type Arc } from "@/lib/ribbon";
+import { createSky, type Sky, type SkyState } from "@/lib/sky";
 
 /*
  * One rAF loop drives every scroll effect on the page. The page scrolls natively;
@@ -82,6 +84,28 @@ export default function MotionEngine() {
       }
     }
     let arcDirty = true;
+
+    // Sky: the globe behind the hero, then a faint aurora band behind the rest.
+    let sky: Sky | null = null;
+    const skyCanvas = $<HTMLCanvasElement>("canvas[data-sky]");
+    const mobileSky = window.innerWidth < 900 || window.matchMedia("(pointer: coarse)").matches;
+    if (skyCanvas) {
+      try {
+        sky = createSky(skyCanvas, {
+          mobile: mobileSky,
+          textureUrl: withBase(mobileSky ? "/earth/earth-2k.jpg" : "/earth/earth-4k.jpg"),
+        });
+        if (sky) requestAnimationFrame(() => skyCanvas.classList.add("is-ready"));
+        else skyCanvas.style.display = "none";
+      } catch (e) {
+        console.warn("sky", e);
+        skyCanvas.style.display = "none";
+      }
+    }
+    let skyDirty = true;
+    let lastSkySy = -1;
+    let skyTick = 0;
+    let skyCleared = false;
     let quality = 1;
     let lowPower = false;
     let lastArcScroll = -1;
@@ -103,7 +127,8 @@ export default function MotionEngine() {
         a: -1,
       }));
       arc?.resize(wide, quality);
-      dirty = arcDirty = true;
+      sky?.resize(quality);
+      dirty = arcDirty = skyDirty = true;
     };
 
     const apply = (sy: number) => {
@@ -188,6 +213,34 @@ export default function MotionEngine() {
       });
     };
 
+    /*
+     * The sky for a scroll position. Hero: the planet low on the far side (top of the
+     * screen on phones), aurora on its sunlit limb. Leaving the hero, it sinks away and
+     * the aurora lifts off into a faint band that drifts and reshapes as you read, then
+     * gives way to the contact section's own arc.
+     */
+    const skyState = (sy: number, t: number): SkyState => {
+      const H = m!.hero;
+      const C = m!.contact;
+      const k = smooth(0, H.h * 0.85, sy);
+      const aspect = window.innerWidth / vh;
+      const g: [number, number, number] = wide
+        ? [aspect * 0.64, -1.02 - k * 0.95, 1.35]
+        : [aspect * 0.5 + 0.08, 0.6 + k * 0.75, 0.62];
+      g[0] *= mirror;
+      const handOff = smooth(C.top - vh * 1.1, C.top - vh * 0.35, sy);
+      return {
+        globe: g,
+        globeK: 1 - smooth(0.15, 0.9, k),
+        sun: wide ? [-0.55, 0.75] : [-0.6, -0.6],
+        spin: t * 0.025 + (sy / vh) * 0.08,
+        free: smooth(0.4, 1, k) * (1 - handOff) * 0.3,
+        shape: (sy / vh) * 0.55,
+        mirror,
+        time: t,
+      };
+    };
+
     // Resize: ignore mobile URL-bar height changes.
     let lw = window.innerWidth;
     let lh = window.innerHeight;
@@ -248,15 +301,37 @@ export default function MotionEngine() {
         }
       }
 
+      if (sky) {
+        const scrolled = sy !== lastSkySy;
+        if (scrolled || skyDirty || ambient || sky.fading) {
+          const st = skyState(sy, t);
+          const idle = st.globeK < 0.01 && st.free < 0.005;
+          // The faint band alone drifts at half rate while the page is still.
+          const halfRate = st.globeK < 0.01 && !scrolled && !skyDirty;
+          if (idle) {
+            if (!skyCleared) {
+              sky.draw(st);
+              skyCleared = true;
+            }
+          } else if (!halfRate || ++skyTick % 2 === 0) {
+            sky.draw(st);
+            skyCleared = false;
+          }
+          lastSkySy = sy;
+          skyDirty = false;
+        }
+      }
+
       // Adaptive quality: drop resolution, then stop ambient motion.
-      if (arc?.visible && dt > 0) {
+      if (dt > 0) {
         frameAvg = frameAvg * 0.92 + dt * 0.08;
         if (++frames > 40 && frameAvg > 26) {
           frames = 0;
           frameAvg = 16;
           if (quality > 0.5) {
             quality *= 0.8;
-            arc.resize(wide, quality);
+            arc?.resize(wide, quality);
+            sky?.resize(quality);
           } else lowPower = true;
         }
       }
@@ -270,6 +345,7 @@ export default function MotionEngine() {
       ro.disconnect();
       cancelAnimationFrame(pending);
       arc?.dispose();
+      sky?.dispose();
     };
   }, []);
 

@@ -163,9 +163,9 @@ main,
 }
 
 /* ==========================================================================
-   Pointer smoke (one fixed canvas behind the whole page)
+   Sky: globe + aurora (one fixed canvas behind the whole page)
    ========================================================================== */
-.smoke {
+.sky {
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -173,6 +173,11 @@ main,
   width: 100%;
   height: 100lvh;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.sky.is-ready {
+  opacity: 1;
 }
 
 /* ==========================================================================
@@ -672,7 +677,6 @@ main,
   height: 100svh;
   min-height: 620px;
   overflow: hidden;
-  background: radial-gradient(50% 60% at var(--glow-x) 50%, rgba(60, 170, 170, 0.1), rgba(5, 8, 10, 0) 70%);
 }
 [dir="rtl"] .hero {
   --glow-x: 30%;

@@ -8,7 +8,6 @@ import Hero from "@/components/Hero";
 import MotionEngine from "@/components/MotionEngine";
 import Nav from "@/components/Nav";
 import Projects from "@/components/Projects";
-import SmokeField from "@/components/SmokeField";
 import { getContent, hasLocale } from "@/content";
 
 export default async function Page({ params }: PageProps<"/[lang]">) {
@@ -18,7 +17,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
 
   return (
     <div className="root" data-root>
-      <SmokeField />
+      <canvas className="sky" data-sky aria-hidden="true" />
       <Nav nav={c.nav} />
       <main>
         <Hero hero={c.hero} arrows={c.arrows} />
