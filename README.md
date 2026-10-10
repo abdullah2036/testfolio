@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Abdullah Bokhary — portfolio
 
-## Getting Started
-
-First, run the development server:
+Next.js 16 (App Router) + TypeScript, built from the design handoff in `../Portfolio v2.dc.html`.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000 → redirects to /en or /ar
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Two languages, two pages
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`/en` (LTR) and `/ar` (RTL) are both prerendered. `/` picks one from the `lang` cookie (set by the language switch) or `Accept-Language` (`proxy.ts`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Copy** lives in `content/en.ts` and `content/ar.ts`. They are written separately, not as a key-by-key translation, and share links/images through `content/shared.ts`.
+- **Layout** mirrors through logical CSS properties and `[dir="rtl"]` rules in `app/globals.css`. Arabic gets its own type settings: Alexandria, no negative tracking, no uppercase, wider word spacing, taller line height, and a right-to-left accent gradient. English uses Bricolage Grotesque with DM Mono for labels.
+- **3D** mirrors in `components/MotionEngine.tsx` (`mirror = -1`): the layer stack, the laptop tilt, certificate reveals, and the contact arc all flip.
 
-## Learn More
+## Where things are
 
-To learn more about Next.js, take a look at the following resources:
+| Path | What |
+|---|---|
+| `app/[lang]/layout.tsx` | `<html lang dir>`, fonts, metadata + hreflang |
+| `app/[lang]/page.tsx` | Section order |
+| `components/*.tsx` | One file per section |
+| `components/MotionEngine.tsx` | The single rAF loop: smoothed scroll, sticky-section effects, reveals and the contact arc |
+| `lib/fluid.ts` | Pointer smoke: a small GPU fluid solver (advection, pressure, vorticity) that only runs while there is movement |
+| `lib/ribbon.ts` | The contact section's arc ribbon (the design prototype's shader) |
+| `components/DetailSheet.tsx`, `DetailController.tsx` | Glass detail cards (`<dialog>`) for projects and certificates |
+| `public/projects/` | Laptop screenshots (16:10 crops from the top) |
+| `public/certs/` | Certificate images |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Set `NEXT_PUBLIC_SITE_URL` in production so canonical and hreflang URLs are absolute.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## GitHub Pages
 
-## Deploy on Vercel
+Every push to `main` builds a static export and publishes it to the `gh-pages` branch (`.github/workflows/pages.yml`), served at https://abdullah2036.github.io/testfolio/.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+To build the same thing locally (bash):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+GITHUB_PAGES=true NEXT_PUBLIC_SITE_URL=https://abdullah2036.github.io/testfolio npm run build   # → out/
+```
+
+In that mode the app is exported with the `/testfolio` base path; `withBase()` in `lib/paths.ts` prefixes image and file URLs, and `/` forwards to `/en/` or `/ar/` in the browser (`app/(root)/page.tsx`).
