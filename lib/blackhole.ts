@@ -47,17 +47,17 @@ type Frame = {
 
 // From outside the disk with a long lens: nearly edge-on, rolled, the hole pushed past the reading-end edge.
 const FRAMES: Record<"wide" | "tall", Frame> = {
-  wide: { dist: 15, elev: 4, roll: -23, fov: 30, shift: [-2.25, -0.6] },
+  wide: { dist: 15, elev: 4, roll: -9, fov: 30, shift: [-2.3, 0.04] },
   tall: { dist: 15, elev: 7, roll: 22, fov: 34, shift: [-0.62, -0.85] },
 };
 
-const DISK = { rin: 2.4, rout: 9 };
+const DISK = { rin: 2.4, rout: 11 };
 
 // Where the disk's light horizon runs on screen (fractions; x from the reading-start
 // edge, y from the bottom): its point, then a point toward the hole. The aurora is
 // born along this line.
 const HORIZON: Record<"wide" | "tall", [number, number, number, number]> = {
-  wide: [0.4, 0.17, 0.98, 0.8],
+  wide: [0.5, 0.35, 0.96, 0.5],
   tall: [0.12, 0.5, 0.95, 0.88],
 };
 const MARGIN = 1.35; // the baked map covers more than the screen so the scene can recede
@@ -327,6 +327,9 @@ void main() {
   vec2 rel = vec2((m.x - uAnchor.x) * uAspect, m.y - uAnchor.y);
   float across = rel.y * cos(uRoll) + rel.x * sin(uRoll);
   float arm = smoothstep(-0.14, 0.2, across);
+  // The far tail thins out gradually with distance from the hole, so the light
+  // dissolves into the dark instead of ending where the disk's geometry stops.
+  col *= 1.0 - smoothstep(0.4, 0.98, length(rel));
   float lum = max(col.r, max(col.g, col.b));
   vec3 tint = mix(mix(VIOLET, BLUE, smoothstep(0.0, 0.5, arm)), mix(BLUE, TEAL, 0.6), smoothstep(0.5, 1.0, arm));
   col = mix(col, tint * lum * 1.1, 0.55);
