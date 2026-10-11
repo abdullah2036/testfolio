@@ -19,6 +19,9 @@ const ar: Content = {
     stack: "التقنيات",
     role: "دوري",
     issued: "تاريخ الإصدار",
+    prev: "المشروع السابق",
+    next: "المشروع التالي",
+    goTo: "انتقل إلى المشروع",
   },
   nav: {
     wordmark: "عبدالله",
@@ -71,6 +74,7 @@ const ar: Content = {
     eyebrow: { num: "٠٣", label: "المشاريع" },
     heading: { lines: ["مشاريع"], accent: "تعمل فعلاً." },
     featuredBadge: "الأبرز",
+    moreTitle: "مشاريع أخرى",
     allWork: { label: "كل أعمالي على GitHub", handle: `@${GITHUB_HANDLE}`, href: SOCIAL.githubRepos },
     projects: [
       {

@@ -24,9 +24,9 @@ npm run build
 | `app/[lang]/page.tsx` | Section order |
 | `components/*.tsx` | One file per section |
 | `components/MotionEngine.tsx` | The single rAF loop: smoothed scroll, sticky-section effects, reveals and the contact arc |
-| `lib/sky.ts` | The sky: a backlit NASA Blue Marble globe with aurora on its limb (hero), then a faint drifting aurora band behind the rest of the page |
-| `public/earth/` | Globe textures packed from NASA Blue Marble + cloud imagery (R = surface, G = clouds, B = land mask) |
+| `lib/blackhole.ts` | The sky: photon paths traced round a Schwarzschild black hole, drawn as crisp lines; on scroll the hole fades and the light relaxes into the background field |
 | `lib/ribbon.ts` | The contact section's arc ribbon (the design prototype's shader) |
+| `components/ProjectCarousel.tsx` | The "more projects" rail: native scroll + snap, coverflow, mouse drag, arrows, dots |
 | `components/DetailSheet.tsx`, `DetailController.tsx` | Glass detail cards (`<dialog>`) for projects and certificates |
 | `public/projects/` | Laptop screenshots (16:10 crops from the top) |
 | `public/certs/` | Certificate images |

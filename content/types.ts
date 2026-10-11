@@ -59,6 +59,9 @@ export type Content = {
     stack: string;
     role: string;
     issued: string;
+    prev: string;
+    next: string;
+    goTo: string;
   };
   nav: {
     wordmark: string;
@@ -90,6 +93,7 @@ export type Content = {
     eyebrow: Eyebrow;
     heading: Heading;
     featuredBadge: string;
+    moreTitle: string;
     projects: Project[];
     allWork: { label: string; handle: string; href: string };
   };

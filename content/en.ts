@@ -18,6 +18,9 @@ const en: Content = {
     stack: "Built with",
     role: "My role",
     issued: "Issued",
+    prev: "Previous project",
+    next: "Next project",
+    goTo: "Go to project",
   },
   nav: {
     wordmark: "ABDULLAH",
@@ -70,6 +73,7 @@ const en: Content = {
     eyebrow: { num: "03", label: "Projects" },
     heading: { lines: ["Work"], lead: "that ", accent: "works." },
     featuredBadge: "Featured",
+    moreTitle: "More projects",
     allWork: { label: "View all my work", handle: `@${GITHUB_HANDLE}`, href: SOCIAL.githubRepos },
     projects: [
       {

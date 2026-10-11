@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { withBase } from "@/lib/paths";
 import { createArc, type Arc } from "@/lib/ribbon";
-import { createSky, type Sky, type SkyState } from "@/lib/sky";
+import { createBlackHole, type BlackHole, type HoleState } from "@/lib/blackhole";
 
 /*
  * One rAF loop drives every scroll effect on the page. The page scrolls natively;
@@ -17,6 +16,7 @@ const smooth = (a: number, b: number, x: number) => {
   const s = clamp((x - a) / (b - a));
   return s * s * (3 - 2 * s);
 };
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 /** Holds on each integer and eases between them. */
 const stair = (q: number, max: number) => {
   const f = Math.floor(q);
@@ -58,14 +58,12 @@ export default function MotionEngine() {
     }));
     const steps = $$("[data-step]");
     const stepBars = $$("[data-stepbar]");
-    const pinfo = $$("[data-pinfo]");
-    const pshot = $$("[data-pshot]");
-    const pdot = $$("[data-pdot]");
 
     let wide = window.innerWidth >= 900;
     let vh = window.innerHeight;
     let m: Record<"hero" | "about" | "work" | "certs" | "contact", Box> | null = null;
     let maxSy = 0;
+    let laptopTop = 0;
     let reveals: Reveal[] = [];
     let dirty = true;
     let solid: boolean | null = null;
@@ -85,15 +83,14 @@ export default function MotionEngine() {
     }
     let arcDirty = true;
 
-    // Sky: the globe behind the hero, then a faint aurora band behind the rest.
-    let sky: Sky | null = null;
+    // Sky: light bending round a black hole behind the hero, then the same light,
+    // with gravity relaxed, as a faint moving field behind the rest of the page.
+    let sky: BlackHole | null = null;
     const skyCanvas = $<HTMLCanvasElement>("canvas[data-sky]");
-    const mobileSky = window.innerWidth < 900 || window.matchMedia("(pointer: coarse)").matches;
     if (skyCanvas) {
       try {
-        sky = createSky(skyCanvas, {
-          mobile: mobileSky,
-          textureUrl: withBase(mobileSky ? "/earth/earth-2k.jpg" : "/earth/earth-4k.jpg"),
+        sky = createBlackHole(skyCanvas, {
+          mobile: window.innerWidth < 900 || window.matchMedia("(pointer: coarse)").matches,
         });
         if (sky) requestAnimationFrame(() => skyCanvas.classList.add("is-ready"));
         else skyCanvas.style.display = "none";
@@ -119,6 +116,7 @@ export default function MotionEngine() {
       };
       m = { hero: box("top"), about: box("about"), work: box("work"), certs: box("certificates"), contact: box("contact") };
       maxSy = Math.max(0, document.documentElement.scrollHeight - vh);
+      laptopTop = laptop ? absTop(laptop) : 0;
       reveals = $$("[data-reveal]").map((el) => ({
         el,
         top: absTop(el),
@@ -170,33 +168,13 @@ export default function MotionEngine() {
       });
       stepBars.forEach((b, i) => (b.style.transform = `scaleX(${clamp(qa - i + 1)})`));
 
-      // Projects: laptop showcase
-      const W = m.work;
-      const wp = clamp((sy - W.top) / Math.max(1, W.h - vh));
-      const pre = clamp((sy - (W.top - vh)) / vh);
+      // Projects: the laptop settles from a tilt as it comes up the screen.
+      const pre = clamp((sy - (laptopTop - vh)) / (vh * 0.7));
       if (laptop) {
         const rx = wide ? 22 - 14 * pre : 14 - 9 * pre;
         const ry = (wide ? -28 + 12 * pre : -10 + 5 * pre) * mirror;
         laptop.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) translate3d(0,${(1 - pre) * 40}px,0)`;
       }
-      const N = pinfo.length;
-      if (N) {
-        const qw = stair(clamp(wp / 0.9) * (N - 1), N - 1);
-        pinfo.forEach((p, i) => {
-          const o = clamp(1 - Math.abs(qw - i) * 2.2);
-          p.style.opacity = String(o);
-          p.style.transform = `translate3d(0,${(i - qw) * 26}px,0)`;
-          p.style.visibility = o < 0.01 ? "hidden" : "visible";
-        });
-        pshot.forEach((p, i) => {
-          const o = clamp(1 - Math.abs(qw - i) * 1.5);
-          p.style.opacity = String(o);
-          p.style.transform = `scale(${1.06 - 0.06 * o})`;
-          p.style.pointerEvents = o > 0.5 ? "auto" : "none";
-        });
-        pdot.forEach((d, i) => (d.style.opacity = String(0.25 + 0.75 * clamp(1 - Math.abs(qw - i)))));
-      }
-
       // Scroll reveals
       reveals.forEach((r) => {
         // Anything still short of fully shown at the very bottom of the page finishes there.
@@ -214,28 +192,29 @@ export default function MotionEngine() {
     };
 
     /*
-     * The sky for a scroll position. Hero: the planet low on the far side (top of the
-     * screen on phones), aurora on its sunlit limb. Leaving the hero, it sinks away and
-     * the aurora lifts off into a faint band that drifts and reshapes as you read, then
-     * gives way to the contact section's own arc.
+     * The sky for a scroll position. In the hero the hole sits on the far side (top on
+     * phones) with light streaming round it. Leaving the hero, the hole fades so slowly
+     * it is hard to notice, gravity relaxes, and the same streams drift toward the
+     * middle as a dim field that keeps flowing and reshapes as you read; near Contact
+     * it gives way to that section's own arc.
      */
-    const skyState = (sy: number, t: number): SkyState => {
+    const skyState = (sy: number, t: number): HoleState => {
       const H = m!.hero;
       const C = m!.contact;
-      const k = smooth(0, H.h * 0.85, sy);
+      const k = smooth(0, H.h * 1.15, sy);
+      const away = smooth(0.15, 1, k);
+      const pv = sy / vh;
       const aspect = window.innerWidth / vh;
-      const g: [number, number, number] = wide
-        ? [aspect * 0.64, -1.02 - k * 0.95, 1.35]
-        : [aspect * 0.5 + 0.08, 0.6 + k * 0.75, 0.62];
-      g[0] *= mirror;
+      const hero = wide ? [aspect * 0.5 + 0.13, 0.05, 0.42] : [aspect * 0.5 + 0.04, 0.34, 0.22];
+      const mid = wide ? [aspect * 0.18, -0.05, 0.5] : [0.05, 0.05, 0.3];
       const handOff = smooth(C.top - vh * 1.1, C.top - vh * 0.35, sy);
       return {
-        globe: g,
-        globeK: 1 - smooth(0.15, 0.9, k),
-        sun: wide ? [-0.55, 0.75] : [-0.6, -0.6],
-        spin: t * 0.025 + (sy / vh) * 0.08,
-        free: smooth(0.4, 1, k) * (1 - handOff) * 0.3,
-        shape: (sy / vh) * 0.55,
+        center: [lerp(hero[0], mid[0], away), lerp(hero[1], mid[1], away)],
+        radius: lerp(hero[2], mid[2], away),
+        hole: 1 - smooth(0.05, 0.9, k),
+        relax: away * (0.62 + 0.28 * Math.sin(pv * 0.45)),
+        turn: away * (0.35 * Math.sin(pv * 0.28) - 0.25),
+        intensity: lerp(1, 0.3, away) * (1 - handOff),
         mirror,
         time: t,
       };
@@ -301,14 +280,13 @@ export default function MotionEngine() {
         }
       }
 
-      if (sky) {
+      if (sky && sky.ready) {
         const scrolled = sy !== lastSkySy;
-        if (scrolled || skyDirty || ambient || sky.fading) {
+        if (scrolled || skyDirty || ambient) {
           const st = skyState(sy, t);
-          const idle = st.globeK < 0.01 && st.free < 0.005;
-          // The faint band alone drifts at half rate while the page is still.
-          const halfRate = st.globeK < 0.01 && !scrolled && !skyDirty;
-          if (idle) {
+          // Once the hole is gone and the field is dim, the drift renders at half rate.
+          const halfRate = st.hole < 0.01 && !scrolled && !skyDirty;
+          if (st.intensity < 0.003 && st.hole < 0.003) {
             if (!skyCleared) {
               sky.draw(st);
               skyCleared = true;
