@@ -1,40 +1,67 @@
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, CSSProperties, ReactNode } from "react";
 import type { Eyebrow as EyebrowData, Heading } from "@/content/types";
 
-type RevealProps = { reveal?: number };
-const revealAttr = (reveal?: number) => (reveal === undefined ? {} : { "data-reveal": reveal });
+/*
+ * Entrance motion: elements carry data-anim (lines | wipe | rise) and are revealed once
+ * by the Interactions controller when they enter the viewport. `reveal` is a stagger
+ * step (0, 1, 2…) within a group; `delay` sets an absolute delay in seconds.
+ */
+type RevealProps = { reveal?: number; delay?: number };
+const animAttr = (kind: "lines" | "wipe" | "rise", { reveal, delay }: RevealProps) => ({
+  "data-anim": kind,
+  style: { "--d": `${delay ?? (reveal ?? 0) * 0.1}s` } as CSSProperties,
+});
 
-export function Eyebrow({ num, label, reveal }: EyebrowData & RevealProps) {
+export function Eyebrow({ num, label, ...r }: EyebrowData & RevealProps) {
   return (
-    <div className="eyebrow" {...revealAttr(reveal)}>
+    <div className="eyebrow" {...animAttr("wipe", r)}>
+      <span className="eyebrow__in">
       {num}
       {"  //  "}
       {label}
+      </span>
     </div>
   );
 }
 
+/** A display heading whose lines rise from behind a mask, one after another. */
 export function Display({
   as: Tag = "h2",
   heading,
   variant = "section",
-  reveal,
+  ...r
 }: {
   as?: "h1" | "h2";
   heading: Heading;
   variant?: "hero" | "section" | "contact";
 } & RevealProps) {
+  const lines = heading.lines.length;
   return (
-    <Tag className={`display display--${variant}`} {...revealAttr(reveal)}>
-      {heading.lines.map((line) => (
-        <span key={line}>
-          {line}
-          <br />
+    <Tag className={`display display--${variant}`} {...animAttr("lines", r)}>
+      {heading.lines.map((line, i) => (
+        <span key={line} className="line" style={{ "--i": i } as CSSProperties}>
+          <span className="line__in">{line}</span>
         </span>
       ))}
-      {heading.lead}
-      <span className="accent">{heading.accent}</span>
+      <span className="line" style={{ "--i": lines } as CSSProperties}>
+        <span className="line__in">
+          {heading.lead}
+          <span className="accent">{heading.accent}</span>
+        </span>
+      </span>
     </Tag>
+  );
+}
+
+/** A label that rolls up to a fresh copy of itself on hover. */
+export function Roll({ children }: { children: string }) {
+  return (
+    <span className="roll">
+      <span className="roll__a">{children}</span>
+      <span className="roll__b" aria-hidden="true">
+        {children}
+      </span>
+    </span>
   );
 }
 
@@ -69,10 +96,11 @@ export function CircleLink({
   return (
     <a
       className={`circle-link circle-link--${size} ${className}`}
+      data-magnetic
       {...(external ? { target: "_blank", rel: "noopener" } : {})}
       {...rest}
     >
-      <span className="circle-link__text">{children}</span>
+      <span className="circle-link__text">{typeof children === "string" ? <Roll>{children}</Roll> : children}</span>
       <ArrowCircle arrow={arrow} kind={kind} />
     </a>
   );

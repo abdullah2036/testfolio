@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type MouseEvent } from "react";
 import type { Content } from "@/content/types";
+import { Roll } from "./primitives";
 import { localeHref } from "@/lib/paths";
 
 export default function Nav({ nav }: { nav: Content["nav"] }) {
@@ -64,7 +65,7 @@ export default function Nav({ nav }: { nav: Content["nav"] }) {
               </a>
             ))}
             <a href="#contact" className="pill pill--nav">
-              {nav.cta}
+              <Roll>{nav.cta}</Roll>
             </a>
             {langLink("nav__lang")}
           </nav>

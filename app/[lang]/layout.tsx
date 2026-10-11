@@ -53,7 +53,15 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
       data-scroll-behavior="smooth"
       className={`${bricolage.variable} ${dmMono.variable} ${alexandria.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {/* Entrance animations start hidden; without JavaScript, show everything. */}
+        <noscript>
+          <style>
+            {"[data-anim],[data-anim] *{opacity:1!important;translate:none!important;clip-path:none!important}[data-anim] .line__in{transform:none!important}"}
+          </style>
+        </noscript>
+        {children}
+      </body>
     </html>
   );
 }

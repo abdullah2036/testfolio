@@ -47,9 +47,24 @@ export default function MotionEngine() {
     const touch = "ontouchstart" in window;
 
     const nav = document.querySelector<HTMLElement>("[data-nav]");
+    const navLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>(".nav__link"));
+    let navActive = "";
+    let navHidden = false;
+    let lastRawY = window.scrollY;
     const heroText = $("[data-hero-text]");
     const stack = $("[data-stack]");
     const laptop = $("[data-laptop]");
+    // Projects rail: pinned, moved horizontally by vertical scroll.
+    const hrail = $("[data-hrail]");
+    const hTrack = $("[data-hrail-track]");
+    const hCards = $$("[data-pcard]").map((el) => ({ el, body: el.firstElementChild as HTMLElement, c: 0, w: 1 }));
+    const hIndex = $("[data-hrail-index]");
+    const hBar = $("[data-hrail-bar]");
+    let hTop = 0;
+    let hDist = 0;
+    let hSpan = 1;
+    let hWidth = 1;
+    let hShown = -1;
     // DOM order is bottom → top of the stack; data-plate is the step the plate stands for.
     const plates = $$("[data-plate]").map((el) => ({
       el,
@@ -100,9 +115,9 @@ export default function MotionEngine() {
       }
     }
     let skyDirty = true;
+    let debugSky: { force: number } | null = null;
     let lastSkySy = -1;
     let skyTick = 0;
-    let skyCleared = false;
     let quality = 1;
     let lowPower = false;
     let lastArcScroll = -1;
@@ -117,6 +132,21 @@ export default function MotionEngine() {
       m = { hero: box("top"), about: box("about"), work: box("work"), certs: box("certificates"), contact: box("contact") };
       maxSy = Math.max(0, document.documentElement.scrollHeight - vh);
       laptopTop = laptop ? absTop(laptop) : 0;
+      if (hrail && hTrack) {
+        hTrack.style.transform = "none";
+        hWidth = hTrack.clientWidth || 1;
+        hCards.forEach((c) => {
+          c.w = c.el.offsetWidth || 1;
+          c.c = c.el.offsetLeft + c.w / 2;
+        });
+        hDist = Math.max(0, hTrack.scrollWidth - hWidth);
+        // A little more vertical scroll than horizontal travel, so each card has its moment.
+        hSpan = hDist * (wide ? 1.35 : 1.1);
+        const want = `${Math.round(hSpan + vh)}px`;
+        if (hrail.style.height !== want) hrail.style.height = want;
+        hTop = absTop(hrail);
+        hrail.dataset.ready = "";
+      }
       reveals = $$("[data-reveal]").map((el) => ({
         el,
         top: absTop(el),
@@ -137,6 +167,15 @@ export default function MotionEngine() {
       if (nav && s !== solid) {
         solid = s;
         nav.toggleAttribute("data-solid", s);
+      }
+
+      // Nav marks the section in view…
+      const probe = sy + vh * 0.4;
+      const active = (["contact", "certs", "work", "about"] as const).find((k) => probe >= m![k].top) ?? "";
+      const id = active === "certs" ? "certificates" : active;
+      if (id !== navActive) {
+        navActive = id;
+        navLinks.forEach((a) => a.setAttribute("aria-current", String(a.hash === `#${id}`)));
       }
 
       // Hero
@@ -175,6 +214,28 @@ export default function MotionEngine() {
         const ry = (wide ? -28 + 12 * pre : -10 + 5 * pre) * mirror;
         laptop.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) translate3d(0,${(1 - pre) * 40}px,0)`;
       }
+      // Projects rail: the cards travel across as you scroll, on a gentle arc.
+      if (hTrack && hCards.length) {
+        const p = hSpan ? clamp((sy - hTop) / hSpan) : 0;
+        const x = -mirror * p * hDist;
+        hTrack.style.transform = `translate3d(${x.toFixed(1)}px,0,0)`;
+        hCards.forEach((c) => {
+          const t = (c.c + x - hWidth / 2) / c.w;
+          const a = Math.min(Math.abs(t), 2);
+          if (!c.body) return;
+          c.body.style.transform = reduced
+            ? ""
+            : `translate3d(0,${(a * a * 22).toFixed(1)}px,0) rotate(${(t * 3.2).toFixed(2)}deg) scale(${(1 - a * 0.05).toFixed(3)})`;
+          c.body.style.opacity = String(1 - a * 0.3);
+        });
+        const idx = Math.round(p * (hCards.length - 1));
+        if (idx !== hShown && hIndex) {
+          hShown = idx;
+          hIndex.textContent = String(idx + 1).padStart(2, "0");
+        }
+        if (hBar) hBar.style.transform = `scaleX(${p.toFixed(4)})`;
+      }
+
       // Scroll reveals
       reveals.forEach((r) => {
         // Anything still short of fully shown at the very bottom of the page finishes there.
@@ -192,33 +253,29 @@ export default function MotionEngine() {
     };
 
     /*
-     * The sky for a scroll position. In the hero the hole sits on the far side (top on
-     * phones) with light streaming round it. Leaving the hero, the hole fades so slowly
-     * it is hard to notice, gravity relaxes, and the same streams drift toward the
-     * middle as a dim field that keeps flowing and reshapes as you read; near Contact
-     * it gives way to that section's own arc.
+     * The sky for a scroll position: one continuous recede, never a cut. Through the
+     * hero and About the black hole slowly loses presence (smaller, dimmer, softer)
+     * until only faint, slow-moving light is left behind the content; near Contact it
+     * dims a little further as that section's arc takes over.
      */
     const skyState = (sy: number, t: number): HoleState => {
-      const H = m!.hero;
       const C = m!.contact;
-      const k = smooth(0, H.h * 1.15, sy);
-      const away = smooth(0.15, 1, k);
-      const pv = sy / vh;
-      const aspect = window.innerWidth / vh;
-      const hero = wide ? [aspect * 0.5 + 0.13, 0.05, 0.42] : [aspect * 0.5 + 0.04, 0.34, 0.22];
-      const mid = wide ? [aspect * 0.18, -0.05, 0.5] : [0.05, 0.05, 0.3];
-      const handOff = smooth(C.top - vh * 1.1, C.top - vh * 0.35, sy);
+      const presence = 1 - smooth(0, m!.about.top + vh * 1.1, sy);
+      const handOff = smooth(C.top - vh * 1.2, C.top - vh * 0.3, sy);
       return {
-        center: [lerp(hero[0], mid[0], away), lerp(hero[1], mid[1], away)],
-        radius: lerp(hero[2], mid[2], away),
-        hole: 1 - smooth(0.05, 0.9, k),
-        relax: away * (0.62 + 0.28 * Math.sin(pv * 0.45)),
-        turn: away * (0.35 * Math.sin(pv * 0.28) - 0.25),
-        intensity: lerp(1, 0.3, away) * (1 - handOff),
+        presence,
+        intensity: lerp(0.42, 1, presence * presence) * (1 - 0.55 * handOff),
         mirror,
         time: t,
       };
     };
+
+    if (process.env.NODE_ENV !== "production") {
+      // Dev-only handle for inspecting the sky from the console.
+      const dbg = { sky, force: -1, draw: (y: number, time: number) => sky?.draw(skyState(y, time)) };
+      (window as unknown as { __sky?: unknown }).__sky = dbg;
+      debugSky = dbg;
+    }
 
     // Resize: ignore mobile URL-bar height changes.
     let lw = window.innerWidth;
@@ -232,6 +289,13 @@ export default function MotionEngine() {
       measure();
     };
     window.addEventListener("resize", onResize, { passive: true });
+    // Keyboard: focusing a card in the rail scrolls the page to the point where it is centred.
+    const onRailFocus = (e: FocusEvent) => {
+      const i = hCards.findIndex((c) => c.el.contains(e.target as Node));
+      if (i < 0 || hCards.length < 2) return;
+      window.scrollTo({ top: hTop + (i / (hCards.length - 1)) * hSpan, behavior: reduced ? "auto" : "smooth" });
+    };
+    hTrack?.addEventListener("focusin", onRailFocus);
     // Re-measure when the page's height changes (images, fonts), batched to one per frame.
     let pending = 0;
     const ro = new ResizeObserver(() => {
@@ -255,6 +319,15 @@ export default function MotionEngine() {
       const dt = Math.min(64, Math.max(0, now - last));
       last = now;
       const target = window.scrollY;
+      // …and tucks away while reading down, returning as soon as you scroll up.
+      if (nav && m && Math.abs(target - lastRawY) > 6) {
+        const hide = target > lastRawY && target > m.hero.h * 0.7;
+        if (hide !== navHidden) {
+          navHidden = hide;
+          nav.toggleAttribute("data-hidden", hide);
+        }
+        lastRawY = target;
+      }
       if (reduced) sy = target;
       else {
         sy += (target - sy) * (1 - Math.exp(-dt / 70));
@@ -280,21 +353,14 @@ export default function MotionEngine() {
         }
       }
 
-      if (sky && sky.ready) {
+      if (sky) {
         const scrolled = sy !== lastSkySy;
-        if (scrolled || skyDirty || ambient) {
-          const st = skyState(sy, t);
-          // Once the hole is gone and the field is dim, the drift renders at half rate.
-          const halfRate = st.hole < 0.01 && !scrolled && !skyDirty;
-          if (st.intensity < 0.003 && st.hole < 0.003) {
-            if (!skyCleared) {
-              sky.draw(st);
-              skyCleared = true;
-            }
-          } else if (!halfRate || ++skyTick % 2 === 0) {
-            sky.draw(st);
-            skyCleared = false;
-          }
+        // While the lensing map bakes, keep drawing: each draw bakes another band.
+        if (!sky.ready || scrolled || skyDirty || ambient) {
+          const st = skyState(debugSky && debugSky.force >= 0 ? debugSky.force : sy, t);
+          // Once it is background atmosphere and the page is still, half rate is plenty.
+          const halfRate = sky.ready && st.presence < 0.05 && !scrolled && !skyDirty;
+          if (!halfRate || ++skyTick % 2 === 0) sky.draw(st);
           lastSkySy = sy;
           skyDirty = false;
         }
@@ -320,6 +386,7 @@ export default function MotionEngine() {
       cancelAnimationFrame(raf);
       clearTimeout(late);
       window.removeEventListener("resize", onResize);
+      hTrack?.removeEventListener("focusin", onRailFocus);
       ro.disconnect();
       cancelAnimationFrame(pending);
       arc?.dispose();

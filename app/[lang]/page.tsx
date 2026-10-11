@@ -5,6 +5,7 @@ import Contact from "@/components/Contact";
 import DetailController from "@/components/DetailController";
 import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
+import Interactions from "@/components/Interactions";
 import MotionEngine from "@/components/MotionEngine";
 import Nav from "@/components/Nav";
 import Projects from "@/components/Projects";
@@ -29,6 +30,7 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
       <Footer footer={c.footer} nav={c.nav} arrows={c.arrows} />
       <MotionEngine />
       <DetailController />
+      <Interactions />
     </div>
   );
 }

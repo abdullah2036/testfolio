@@ -1,384 +1,475 @@
 /*
- * The page's sky: light bending around a Schwarzschild black hole.
+ * The page's sky: a ray-traced Schwarzschild black hole with a thin accretion disk,
+ * framed close and tilted so the hole runs off the edge of the screen.
  *
- * Each streak is a real photon path. Paths are traced once on the CPU from the orbit
- * equation for light around a non-rotating mass (Binet form, units G = c = M = 1):
+ * 1. Bake (once per size, spread over a few frames). For every pixel a light ray is
+ *    traced backward from the camera through curved space-time. Units: Schwarzschild
+ *    radius = 1. Null geodesics are integrated with the standard form
+ *        a = −1.5 · h² · x / |x|⁵,   h = |x × v| (conserved)
+ *    which reproduces Schwarzschild light bending exactly. Where the ray pierces the
+ *    disk plane (up to twice: the direct image and the lensed image that wraps over
+ *    the hole) we store the disk radius, angle and Doppler factor; we also keep the
+ *    ray's closest approach (for the photon ring) and whether it fell in.
+ * 2. Shade (every frame, cheap). The disk is drawn from the lensing map: luminous
+ *    filaments in disk coordinates that orbit at Keplerian speed (ω ∝ r^−1.5), so
+ *    inner rings outrun outer ones and the light shears and flows instead of
+ *    rotating as a picture. Approaching gas is brightened and blue-shifted (D³).
  *
- *     d²u/dφ² + u = 3u²,   u = 1/r,   horizon at r = 2, photon sphere at r = 3
- *
- * Rays with impact parameter just above b = 3√3 swing round the photon sphere and
- * form the bright ring; rays below it spiral in and are swallowed. Each path also
- * stores coordinate time (dt = ds / (1 − 2/r)), so the light pulses that travel along
- * it slow and stall near the horizon the way a distant observer would see them.
- *
- * Paths are drawn as thin triangle strips with analytic anti-aliasing, so they stay
- * as sharp as vector lines at any resolution. A second, "relaxed" copy of every path
- * is traced with a tiny mass; blending toward it lets gravity fade out on scroll, so
- * the same light straightens into the background element for the rest of the page.
+ * Scrolling never swaps the scene: the same image recedes (zooms out, drifts, dims,
+ * loses filament detail) until only faint, slow light remains behind the content.
  */
 
 export type HoleState = {
-  /** Hole centre (viewport-height units from the screen centre, y up; before mirroring). */
-  center: [number, number];
-  /** Apparent radius of the dark disk (photon sphere), viewport-height units. */
-  radius: number;
-  /** 0–1: visibility of the dark disk and its ring. */
-  hole: number;
-  /** 0 = full gravity, 1 = straight light. */
-  relax: number;
-  /** Extra rotation of the light field (radians). */
-  turn: number;
-  /** Overall brightness of the light streaks. */
+  /** 1 = full hero presence, 0 = faint background. */
+  presence: number;
+  /** Overall brightness multiplier. */
   intensity: number;
   mirror: 1 | -1;
   time: number;
 };
 
-const B_CRIT = 3 * Math.sqrt(3); // critical impact parameter (in M)
-const R0 = 30; // rays start and end on this circle
-// Light arrives from below, swings round the reading-start side of the hole and leaves upward.
-const BASE_ROT = Math.PI + 0.2;
+type Frame = {
+  dist: number; // camera distance (Schwarzschild radii)
+  elev: number; // camera elevation above the disk plane (degrees)
+  roll: number; // camera roll (degrees)
+  fov: number; // vertical field of view (degrees)
+  shift: [number, number]; // lens shift: where the image window sits relative to the hole
+};
 
-type Path = { x: number[]; y: number[]; t: number[]; r: number[] };
+// From outside the disk with a long lens: nearly edge-on, rolled, the hole pushed past the reading-end edge.
+const FRAMES: Record<"wide" | "tall", Frame> = {
+  wide: { dist: 15, elev: 4, roll: 7, fov: 30, shift: [-2.15, 0.04] },
+  tall: { dist: 15, elev: 7, roll: 22, fov: 34, shift: [-0.62, -0.85] },
+};
 
-/** Integrates one photon path with RK4 in φ. */
-function trace(b: number, mass: number): Path {
-  let u = 1 / R0;
-  let w = Math.sqrt(Math.max(1 / (b * b) - u * u * (1 - 2 * mass * u), 0));
-  let phi = -Math.acos(Math.min(1, b / R0));
-  const out: Path = { x: [], y: [], t: [], r: [] };
-  let px = Math.cos(phi) / u;
-  let py = Math.sin(phi) / u;
-  let T = 0;
-  out.x.push(px);
-  out.y.push(py);
-  out.t.push(0);
-  out.r.push(1 / u);
-  const f = (uu: number) => -uu + 3 * mass * uu * uu;
-  for (let i = 0; i < 60000; i++) {
-    const r = 1 / u;
-    const h = r < 12 ? 0.0025 : 0.008;
-    const k1u = w, k1w = f(u);
-    const k2u = w + 0.5 * h * k1w, k2w = f(u + 0.5 * h * k1u);
-    const k3u = w + 0.5 * h * k2w, k3w = f(u + 0.5 * h * k2u);
-    const k4u = w + h * k3w, k4w = f(u + h * k3u);
-    u += (h / 6) * (k1u + 2 * k2u + 2 * k3u + k4u);
-    w += (h / 6) * (k1w + 2 * k2w + 2 * k3w + k4w);
-    phi += h;
-    const captured = u >= 1 / (2 * mass) - 1e-4;
-    const escaped = w < 0 && u <= 1 / R0;
-    const rr = captured ? 2 * mass : 1 / Math.max(u, 1e-6);
-    const nx = Math.cos(phi) * rr;
-    const ny = Math.sin(phi) * rr;
-    const ds = Math.hypot(nx - px, ny - py);
-    T += ds / Math.max(1 - (2 * mass) / rr, 0.03);
-    if (ds > (rr < 8 ? 0.05 : 0.25) || captured || escaped) {
-      out.x.push(nx);
-      out.y.push(ny);
-      out.t.push(T);
-      out.r.push(rr);
-      px = nx;
-      py = ny;
-    }
-    if (captured || escaped) break;
-  }
-  return out;
-}
+const DISK = { rin: 2.4, rout: 11 };
+const MARGIN = 1.35; // the baked map covers more than the screen so the scene can recede
 
-/** Resamples a path to n points evenly spaced by arc length. */
-function resample(p: Path, n: number) {
-  const s = [0];
-  for (let i = 1; i < p.x.length; i++) s.push(s[i - 1] + Math.hypot(p.x[i] - p.x[i - 1], p.y[i] - p.y[i - 1]));
-  const total = s[s.length - 1] || 1;
-  const x = new Float32Array(n), y = new Float32Array(n), t = new Float32Array(n), r = new Float32Array(n);
-  let j = 0;
-  for (let k = 0; k < n; k++) {
-    const target = (k / (n - 1)) * total;
-    while (j < s.length - 2 && s[j + 1] < target) j++;
-    const a = s[j + 1] > s[j] ? (target - s[j]) / (s[j + 1] - s[j]) : 0;
-    x[k] = p.x[j] + (p.x[j + 1] - p.x[j]) * a;
-    y[k] = p.y[j] + (p.y[j + 1] - p.y[j]) * a;
-    t[k] = p.t[j] + (p.t[j + 1] - p.t[j]) * a;
-    r[k] = p.r[j] + (p.r[j + 1] - p.r[j]) * a;
-  }
-  return { x, y, t, r };
-}
-
-/** Deterministic random numbers, so the field looks the same on every visit. */
-function rng(seed: number) {
-  return () => {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
-}
-
-const FLOATS = 16; // per vertex: pc(2) pr(2) tc(2) tr(2) side t r frac seed hue bright pad
-
-function buildField(rays: number, points: number) {
-  const rand = rng(7);
-  const data = new Float32Array(rays * points * 2 * FLOATS);
-  const index = new Uint32Array(rays * (points - 1) * 6);
-  let v = 0;
-  let ix = 0;
-  for (let i = 0; i < rays; i++) {
-    // ~12% are swallowed; the rest crowd toward the critical orbit, thinning outward.
-    const captured = i % 8 === 0;
-    const b = captured
-      ? B_CRIT - 0.02 - rand() * 1.1
-      : B_CRIT + 0.0004 + Math.pow(rand(), 1.6) * 3.2;
-    const curved = resample(trace(b, 1), points);
-    const relaxed = resample(trace(b, 0.12), points);
-    const seed = rand();
-    const hue = (rand() - 0.5) * 0.3;
-    const nearCrit = Math.exp(-Math.abs(b - B_CRIT) * 1.4);
-    const bright = (0.22 + 0.78 * Math.pow(rand(), 3)) * (1 + 1.6 * nearCrit);
-    const base = v;
-    for (let k = 0; k < points; k++) {
-      const k0 = Math.max(0, k - 1), k1 = Math.min(points - 1, k + 1);
-      let tcx = curved.x[k1] - curved.x[k0], tcy = curved.y[k1] - curved.y[k0];
-      let trx = relaxed.x[k1] - relaxed.x[k0], try_ = relaxed.y[k1] - relaxed.y[k0];
-      const lc = Math.hypot(tcx, tcy) || 1, lr = Math.hypot(trx, try_) || 1;
-      tcx /= lc; tcy /= lc; trx /= lr; try_ /= lr;
-      for (const side of [-1, 1]) {
-        const o = v * FLOATS;
-        data.set(
-          [curved.x[k], curved.y[k], relaxed.x[k], relaxed.y[k], tcx, tcy, trx, try_,
-            side, curved.t[k], curved.r[k], k / (points - 1), seed, hue, bright, 0],
-          o,
-        );
-        v++;
-      }
-    }
-    for (let k = 0; k < points - 1; k++) {
-      const a = base + k * 2;
-      index.set([a, a + 1, a + 2, a + 1, a + 3, a + 2], ix);
-      ix += 6;
-    }
-  }
-  return { data, index, count: ix };
-}
-
-const LINE_VS = `#version 300 es
-layout(location=0) in vec2 aPC;
-layout(location=1) in vec2 aPR;
-layout(location=2) in vec2 aTC;
-layout(location=3) in vec2 aTR;
-layout(location=4) in vec4 aMeta;   // side, coordinate time, r, fraction along path
-layout(location=5) in vec4 aRay;    // seed, hue shift, brightness, -
-uniform vec2 uRes;
-uniform vec2 uCenter;
-uniform float uScale;
-uniform float uRot;
-uniform float uRelax;
-uniform float uMirror;
-uniform float uWidth;   // device pixels
-out float vSide;
-out float vAA;
-out vec4 vMeta;
-out vec4 vRay;
-void main() {
-  vec2 P = mix(aPC, aPR, uRelax);
-  vec2 T = normalize(mix(aTC, aTR, uRelax) + vec2(1e-6, 0.0));
-  vec2 N = vec2(-T.y, T.x);
-  float c = cos(uRot), s = sin(uRot);
-  mat2 R = mat2(c, s, -s, c);
-  float px = 1.0 / uRes.y;
-  float halfW = 0.5 * uWidth * px;
-  vec2 w = R * P * uScale + uCenter + (R * N) * aMeta.x * (halfW + px);
-  w.x *= uMirror;
-  gl_Position = vec4(w.x * 2.0 * uRes.y / uRes.x, w.y * 2.0, 0.0, 1.0);
-  vSide = aMeta.x * (halfW + px) / halfW;
-  vAA = px / halfW;
-  vMeta = aMeta;
-  vRay = aRay;
-}`;
-
-const LINE_FS = `#version 300 es
-precision highp float;
-in float vSide;
-in float vAA;
-in vec4 vMeta;
-in vec4 vRay;
-uniform float uTime;
-uniform float uAlpha;
-uniform float uRelax;
-uniform float uIntensity;
-out vec4 outColor;
-vec3 aur(float h) {
-  vec3 a = vec3(0.30, 0.95, 0.86), b = vec3(0.28, 0.58, 1.0), c = vec3(0.62, 0.45, 1.0);
-  return h < 0.5 ? mix(a, b, h * 2.0) : mix(b, c, (h - 0.5) * 2.0);
-}
-void main() {
-  float edge = 1.0 - smoothstep(1.0 - vAA, 1.0 + vAA, abs(vSide));
-  float r = vMeta.z;
-  float frac = vMeta.w;
-  // Light pulses travel along the path in coordinate time, so they crawl near the horizon.
-  float f = fract(vMeta.y * 0.06 - uTime * 0.45 + vRay.x * 23.0);
-  float pulse = pow(smoothstep(0.35, 1.0, f), 4.0) * (1.0 - smoothstep(0.985, 1.0, f));
-  float near = smoothstep(10.0, 3.2, r) * (1.0 - uRelax);
-  float hot = smoothstep(4.6, 3.05, r) * (1.0 - uRelax); // only the innermost paths run white-hot
-  // Light thins out away from the hole, leaving a concentrated swoosh around it.
-  float fade = smoothstep(9.0, 4.4, r) * smoothstep(0.0, 0.04, frac) * smoothstep(1.0, 0.96, frac);
-  // Arriving light runs violet → blue; light leaving round the hole runs teal.
-  float hue = clamp(mix(1.0, 0.0, smoothstep(0.15, 0.85, frac)) + vRay.y, 0.0, 1.0);
-  vec3 col = mix(aur(hue), vec3(0.9, 0.97, 1.0), hot * 0.7);
-  float I = (0.2 + 1.5 * pulse) * vRay.z * (0.55 + 1.6 * near) * fade * uIntensity * uAlpha * edge;
-  outColor = vec4(col * I, I);
-}`;
-
-const HOLE_VS = `#version 300 es
+const QUAD_VS = `#version 300 es
 layout(location=0) in vec2 aPos;
 void main() { gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
-const HOLE_FS = `#version 300 es
+const BAKE_FS = `#version 300 es
 precision highp float;
 uniform vec2 uRes;
-uniform vec2 uCenter;   // mirrored
-uniform float uRadius;
-uniform float uHole;
-uniform float uMirror;
-out vec4 outColor;
+uniform vec3 uCam;
+uniform vec3 uRight;
+uniform vec3 uUp;
+uniform vec3 uFwd;
+uniform float uTan;
+uniform vec2 uShift;
+uniform float uMargin;
+uniform float uRin;
+uniform float uRout;
+// Angles are stored as cos/sin so the map can be filtered smoothly (no wrap seam).
+layout(location=0) out vec4 oHit1;   // r, cos phi, sin phi, D   (direct image)
+layout(location=1) out vec4 oHit2;   // r, cos phi, sin phi, D   (lensed image)
+layout(location=2) out vec4 oInfo;   // closest approach (negative if captured), hits
 void main() {
-  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
-  vec2 d = p - uCenter;
-  float dist = length(d);
-  float px = 1.0 / uRes.y;
-  float disk = 1.0 - smoothstep(uRadius - px, uRadius + px, dist);
-  // The ring is brightest on the side the light streams round.
-  float side = -(d.x / max(dist, 1e-5)) * uMirror;
-  float lit = 0.18 + 0.82 * smoothstep(-0.35, 0.85, side);
-  float x = (dist - uRadius) / px;
-  float core = exp(-x * x / 1.4);
-  float out1 = step(uRadius, dist);
-  float halo = (exp(-(dist - uRadius) / 0.016) * 0.5 + exp(-(dist - uRadius) / 0.07) * 0.12) * out1;
-  float x2 = (dist - uRadius * 1.34) / px;
-  float outer = exp(-x2 * x2 / 1.2) * 0.22;
-  vec3 col = vec3(0.86, 0.98, 1.0) * core * 1.5 + vec3(0.35, 0.9, 0.95) * halo + vec3(0.6, 0.75, 1.0) * outer;
-  col *= lit * uHole;
-  float a = max(disk * uHole, clamp(max(col.r, max(col.g, col.b)), 0.0, 1.0));
+  vec2 uv = (gl_FragCoord.xy / uRes) * 2.0 - 1.0;
+  uv *= uMargin;
+  uv.x *= uRes.x / uRes.y;
+  uv += uShift;
+  vec3 v = normalize(uFwd + (uRight * uv.x + uUp * uv.y) * uTan);
+  vec3 p = uCam;
+  vec3 c = cross(p, v);
+  float h2 = dot(c, c);
+  vec4 h1 = vec4(-1.0, 1.0, 0.0, 0.0);
+  vec4 h2v = vec4(-1.0, 1.0, 0.0, 0.0);
+  float rmin = 1e4;
+  float n = 0.0;
+  bool captured = false;
+  for (int i = 0; i < 420; i++) {
+    float r = length(p);
+    rmin = min(rmin, r);
+    if (r < 1.0) { captured = true; break; }
+    if (r > 45.0 && dot(p, v) > 0.0) break;
+    float dt = clamp(0.045 * r * r / (r + 3.0), 0.012, 0.9);
+    vec3 a = -1.5 * h2 * p / pow(r, 5.0);
+    vec3 pp = p;
+    v += a * dt;
+    p += v * dt;
+    if (pp.y * p.y < 0.0) {
+      vec3 q = mix(pp, p, pp.y / (pp.y - p.y));
+      float rq = length(q.xz);
+      if (rq > uRin && rq < uRout) {
+        // Keplerian gas (r_s = 1  ⇒  v = sqrt(0.5 / r)), Doppler + gravitational shift.
+        float beta = min(sqrt(0.5 / rq), 0.7);
+        vec3 orbit = normalize(vec3(-q.z, 0.0, q.x)); // the visible side approaches: brighter, blue-shifted
+        float cosT = dot(orbit, -normalize(v));
+        float gam = inversesqrt(1.0 - beta * beta);
+        float D = sqrt(max(1.0 - 1.5 / rq, 0.05)) / (gam * (1.0 - beta * cosT));
+        vec4 hit = vec4(rq, q.x / rq, q.z / rq, D);
+        if (n < 0.5) h1 = hit; else h2v = hit;
+        n += 1.0;
+        if (n > 1.5) break;
+      }
+    }
+  }
+  oHit1 = h1;
+  oHit2 = h2v;
+  oInfo = vec4(captured ? -rmin : rmin, n, 0.0, 0.0);
+}`;
+
+// Tileable noise for the disk's filaments, generated once on the GPU.
+const NOISE_FS = `#version 300 es
+precision highp float;
+uniform vec2 uRes;
+out vec4 o;
+float hash(vec2 p) { p = fract(p * vec2(127.1, 311.7)); p += dot(p, p + 19.19); return fract(p.x * p.y); }
+float vnoise(vec2 x, float period) {
+  vec2 i = floor(x), f = fract(x);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  float a = hash(mod(i, period));
+  float b = hash(mod(i + vec2(1, 0), period));
+  float c = hash(mod(i + vec2(0, 1), period));
+  float d = hash(mod(i + vec2(1, 1), period));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+float fbm(vec2 uv, float base, int oct) {
+  float v = 0.0, a = 0.5, s = 0.0, per = base;
+  for (int i = 0; i < 6; i++) {
+    if (i >= oct) break;
+    v += a * vnoise(uv * per, per);
+    s += a; a *= 0.5; per *= 2.0;
+  }
+  return v / s;
+}
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes;
+  float soft = fbm(uv + 0.37, 4.0, 4);
+  float mid = fbm(uv + 0.71, 8.0, 5);
+  float ridge = 1.0 - abs(2.0 * fbm(uv + 0.13, 16.0, 5) - 1.0);
+  float fine = 1.0 - abs(2.0 * fbm(uv + 0.53, 32.0, 4) - 1.0);
+  o = vec4(soft, mid, ridge, fine);
+}`;
+
+const SHADE_FS = `#version 300 es
+precision highp float;
+uniform vec2 uRes;
+uniform sampler2D uHit1;
+uniform sampler2D uHit2;
+uniform sampler2D uInfo;
+uniform sampler2D uNoise;
+uniform float uTime;
+uniform float uMirror;
+uniform float uMargin;
+uniform vec2 uAnchor;    // hole position in map uv
+uniform float uZoom;     // < 1 recedes
+uniform vec2 uDrift;
+uniform float uDetail;   // 1 crisp filaments, 0 soft haze
+uniform float uIntensity;
+uniform float uClearSide;
+uniform float uTall;
+uniform float uRin;
+uniform float uRout;
+out vec4 outColor;
+
+const vec3 TEAL = vec3(0.30, 0.98, 0.86);
+const vec3 CYAN = vec3(0.55, 0.92, 1.0);
+const vec3 BLUE = vec3(0.24, 0.48, 1.0);
+const vec3 VIOLET = vec3(0.55, 0.36, 1.0);
+
+float flowNoise(float r, float phi, float phase, float bias) {
+  // Keplerian shear: inner rings move faster. Coordinates wrap seamlessly in phi.
+  float omega = 2.4 * pow(r, -1.5);
+  float u = phi / 6.2831853 - omega * phase;
+  float v = log(r) * 1.35;
+  // Long along the orbit, thin across it: luminous filaments rather than grain.
+  float soft = texture(uNoise, vec2(u * 1.0, v * 1.1), bias).r;
+  float mid = texture(uNoise, vec2(u * 1.0 + 0.4, v * 2.6 + 0.3), bias).g;
+  float ridge = texture(uNoise, vec2(u * 1.0 + 0.11, v * 4.2), bias).b;
+  float fine = texture(uNoise, vec2(u * 2.0 - 0.27, v * 6.5), bias).a;
+  float filaments = pow(ridge, 5.0) * 1.0 + pow(fine, 7.0) * 0.55;
+  // Clumps of brighter gas, short along the orbit, so the flow is visible as they travel round.
+  float knots = texture(uNoise, vec2(u * 7.0 + 0.5, v * 1.6 - 0.2), bias).g;
+  float clump = 0.45 + 1.1 * smoothstep(0.42, 0.78, knots);
+  return (soft * 0.45 + mid * 0.35 + filaments * mix(0.2, 1.5, uDetail)) * clump;
+}
+
+vec4 disk(float r, float phi, float D) {
+  // Two phases cross-faded, so the shear never winds the pattern up over time.
+  float cycle = 30.0;
+  float t1 = fract(uTime / cycle), t2 = fract(uTime / cycle + 0.5);
+  float w = abs(t1 * 2.0 - 1.0);
+  float bias = (1.0 - uDetail) * 2.5;
+  float n = mix(flowNoise(r, phi, t1 * cycle * 0.11, bias), flowNoise(r, phi + 1.7, t2 * cycle * 0.11, bias), w);
+  float profile = smoothstep(uRin, uRin + 0.35, r) * pow(uRin / r, 1.8) * (1.0 - smoothstep(uRout * 0.4, uRout, r));
+  float beam = D * D * D;
+  // Bright filaments over a faint haze of the same gas.
+  float I = profile * (0.02 + 0.12 * n + 1.7 * n * n * n * n) * beam;
+  // Hotter (whiter, cyan) inside and on the approaching side; violet outside and receding.
+  vec3 col = mix(VIOLET, BLUE, smoothstep(uRout * 0.75, uRout * 0.35, r));
+  col = mix(col, CYAN, smoothstep(6.5, 3.2, r) * 0.85);
+  col = mix(col, TEAL, clamp((D - 1.0) * 1.6, 0.0, 1.0) * 0.7);
+  col = mix(col, VIOLET, clamp((1.0 - D) * 1.8, 0.0, 1.0) * 0.75);
+  col = mix(col, vec3(0.9, 0.98, 1.0), smoothstep(1.2, 3.2, I) * 0.45);
+  return vec4(col * I, clamp(I * 1.4, 0.0, 1.0));
+}
+
+void main() {
+  vec2 s = gl_FragCoord.xy / uRes;
+  if (uMirror < 0.0) s.x = 1.0 - s.x;
+  vec2 m = 0.5 + (s - 0.5) / uMargin;
+  m = uAnchor + (m - uAnchor) / uZoom + uDrift;
+  float inside = smoothstep(0.0, 0.04, m.x) * smoothstep(1.0, 0.96, m.x) * smoothstep(0.0, 0.04, m.y) * smoothstep(1.0, 0.96, m.y);
+  vec4 A = texture(uHit1, m);
+  vec4 B = texture(uHit2, m);
+  vec4 F = texture(uInfo, m);
+
+  vec3 col = vec3(0.0);
+  float cover = 0.0;
+  if (A.x > 0.0) {
+    vec4 d = disk(A.x, atan(A.z, A.y), A.w);
+    col += d.rgb;
+    cover = d.a;
+  }
+  if (B.x > 0.0) {
+    vec4 d = disk(B.x, atan(B.z, B.y), B.w);
+    col += d.rgb * (1.0 - cover) * 0.9;
+  }
+  // Photon ring: rays that skim the photon sphere (r = 1.5) before escaping.
+  float rmin = abs(F.x);
+  if (F.x > 0.0) {
+    vec2 toHole = m - uAnchor;
+    float side = smoothstep(-0.15, 0.7, -toHole.x / max(length(toHole), 1e-4));
+    col += CYAN * exp(-(rmin - 1.5) * 9.0) * (0.06 + 0.32 * side) * uClearSide;
+    col += BLUE * exp(-(rmin - 1.5) * 1.8) * 0.04;
+  }
+  // Palette by arm: the upper arm (light lensed over the hole) runs cyan-teal,
+  // the lower arm violet, meeting in blue at the point of the disk.
+  float arm = smoothstep(-0.14, 0.2, m.y - uAnchor.y);
+  float lum = max(col.r, max(col.g, col.b));
+  vec3 tint = mix(mix(VIOLET, BLUE, smoothstep(0.0, 0.5, arm)), mix(BLUE, TEAL, 0.6), smoothstep(0.5, 1.0, arm));
+  col = mix(col, tint * lum * 1.1, 0.55);
+  // Keep the headline's side in near-darkness: the reading-start side on wide
+  // screens, the bottom on tall ones (where the hero text sits on phones).
+  float side = uTall > 0.5 ? smoothstep(0.3, 0.62, s.y) : smoothstep(0.1, 0.46, s.x);
+  float clear = mix(1.0, side, uClearSide);
+  col *= uIntensity * inside * clear;
+  col = 1.0 - exp(-col * 1.15);
+  float a = clamp(max(col.r, max(col.g, col.b)) * 1.15, 0.0, 1.0);
   outColor = vec4(col, a);
 }`;
+
+function compile(gl: WebGL2RenderingContext, type: number, src: string) {
+  const s = gl.createShader(type)!;
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) ?? "shader");
+  return s;
+}
+
+function program(gl: WebGL2RenderingContext, fs: string, names: string[]) {
+  const p = gl.createProgram()!;
+  gl.attachShader(p, compile(gl, gl.VERTEX_SHADER, QUAD_VS));
+  gl.attachShader(p, compile(gl, gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) ?? "link");
+  return { p, u: Object.fromEntries(names.map((n) => [n, gl.getUniformLocation(p, n)])) };
+}
+
+type V3 = [number, number, number];
+const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const cross = (a: V3, b: V3): V3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const norm = (a: V3): V3 => {
+  const l = Math.hypot(a[0], a[1], a[2]) || 1;
+  return [a[0] / l, a[1] / l, a[2] / l];
+};
+
+/** Camera basis for a frame: on a circle round the hole, looking at it, then rolled. */
+function cameraFor(f: Frame) {
+  const el = (f.elev * Math.PI) / 180;
+  const cam: V3 = [0, Math.sin(el) * f.dist, -Math.cos(el) * f.dist];
+  const fwd = norm(sub([0, 0, 0], cam));
+  let right = norm(cross([0, 1, 0], fwd));
+  let up = cross(fwd, right);
+  const rl = (f.roll * Math.PI) / 180;
+  const c = Math.cos(rl), s = Math.sin(rl);
+  const r2: V3 = [right[0] * c + up[0] * s, right[1] * c + up[1] * s, right[2] * c + up[2] * s];
+  const u2: V3 = [up[0] * c - right[0] * s, up[1] * c - right[1] * s, up[2] * c - right[2] * s];
+  right = r2;
+  up = u2;
+  return { cam, fwd, right, up, tan: Math.tan((f.fov * Math.PI) / 360) };
+}
 
 export function createBlackHole(canvas: HTMLCanvasElement, opts: { mobile: boolean }) {
   const gl = canvas.getContext("webgl2", { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false });
   if (!gl) return null;
+  if (!gl.getExtension("EXT_color_buffer_float")) return null;
 
-  const compile = (type: number, src: string) => {
-    const s = gl.createShader(type)!;
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) ?? "shader");
-    return s;
-  };
-  const program = (vs: string, fs: string, names: string[]) => {
-    const p = gl.createProgram()!;
-    gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
-    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
-    gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) ?? "link");
-    return { p, u: Object.fromEntries(names.map((n) => [n, gl.getUniformLocation(p, n)])) };
-  };
-  const lines = program(LINE_VS, LINE_FS, [
-    "uRes", "uCenter", "uScale", "uRot", "uRelax", "uMirror", "uWidth", "uTime", "uAlpha", "uIntensity",
+  const bake = program(gl, BAKE_FS, ["uRes", "uCam", "uRight", "uUp", "uFwd", "uTan", "uShift", "uMargin", "uRin", "uRout"]);
+  const noiseProg = program(gl, NOISE_FS, ["uRes"]);
+  const shade = program(gl, SHADE_FS, [
+    "uRes", "uHit1", "uHit2", "uInfo", "uNoise", "uTime", "uMirror", "uMargin", "uAnchor", "uZoom", "uDrift", "uDetail", "uIntensity", "uClearSide", "uTall", "uRin", "uRout",
   ]);
-  const hole = program(HOLE_VS, HOLE_FS, ["uRes", "uCenter", "uRadius", "uHole", "uMirror"]);
 
-  // Light field geometry (built once, right after first paint).
-  const lineVao = gl.createVertexArray();
-  let count = 0;
-  const build = () => {
-    const field = opts.mobile ? buildField(150, 120) : buildField(260, 160);
-    gl.bindVertexArray(lineVao);
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, field.data, gl.STATIC_DRAW);
-    const stride = FLOATS * 4;
-    const attr = (loc: number, size: number, offset: number) => {
-      gl.enableVertexAttribArray(loc);
-      gl.vertexAttribPointer(loc, size, gl.FLOAT, false, stride, offset * 4);
-    };
-    attr(0, 2, 0);
-    attr(1, 2, 2);
-    attr(2, 2, 4);
-    attr(3, 2, 6);
-    attr(4, 4, 8);
-    attr(5, 4, 12);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, field.index, gl.STATIC_DRAW);
-    gl.bindVertexArray(null);
-    count = field.count;
-  };
-  const buildTimer = window.setTimeout(build, 30);
-
-  const quadVao = gl.createVertexArray();
-  gl.bindVertexArray(quadVao);
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-  gl.bindVertexArray(null);
 
-  let dpr = 1;
+  const texture = (w: number, h: number, internal: number, format: number, type: number, filter: number, wrap: number) => {
+    const t = gl.createTexture()!;
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, internal, w, h, 0, format, type, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter === gl.LINEAR_MIPMAP_LINEAR ? gl.LINEAR : filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
+    return t;
+  };
+
+  // Filament noise (512², mipmapped so detail can soften as the scene recedes).
+  const NOISE = 512;
+  const noiseTex = texture(NOISE, NOISE, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR_MIPMAP_LINEAR, gl.REPEAT);
+  {
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, noiseTex, 0);
+    gl.viewport(0, 0, NOISE, NOISE);
+    gl.useProgram(noiseProg.p);
+    gl.uniform2f(noiseProg.u.uRes, NOISE, NOISE);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(fb);
+    gl.bindTexture(gl.TEXTURE_2D, noiseTex);
+    gl.generateMipmap(gl.TEXTURE_2D);
+  }
+
+  // Lensing map: two float targets, baked in horizontal bands over several frames.
+  let mapW = 0, mapH = 0;
+  let hit1Tex: WebGLTexture | null = null;
+  let hit2Tex: WebGLTexture | null = null;
+  let infoTex: WebGLTexture | null = null;
+  let mapFb: WebGLFramebuffer | null = null;
+  let bakedRows = 0;
+  let anchor: [number, number] = [0.5, 0.5];
+  let tall = false;
+
+  const startBake = () => {
+    const w = canvas.width, h = canvas.height;
+    tall = h > w * 1.05;
+    const scale = opts.mobile ? 0.62 : 0.72; // lensing map at reduced res; the disk detail is shaded at full res
+    mapW = Math.max(16, Math.round(w * MARGIN * scale));
+    mapH = Math.max(16, Math.round(h * MARGIN * scale));
+    [hit1Tex, hit2Tex, infoTex].forEach((t) => t && gl.deleteTexture(t));
+    if (mapFb) gl.deleteFramebuffer(mapFb);
+    // Half floats: renderable, and filterable in WebGL2, so the map interpolates smoothly.
+    const mk = () => texture(mapW, mapH, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT, gl.LINEAR, gl.CLAMP_TO_EDGE);
+    hit1Tex = mk();
+    hit2Tex = mk();
+    infoTex = mk();
+    mapFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, mapFb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, hit1Tex, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, hit2Tex, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, infoTex, 0);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
+    gl.clearBufferfv(gl.COLOR, 0, [-1, 1, 0, 0]);
+    gl.clearBufferfv(gl.COLOR, 1, [-1, 1, 0, 0]);
+    gl.clearBufferfv(gl.COLOR, 2, [100, 0, 0, 0]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    bakedRows = 0;
+    // Where the hole lands in map uv (used as the centre the scene recedes toward).
+    const f = FRAMES[tall ? "tall" : "wide"];
+    const aspect = w / h;
+    anchor = [0.5 + (-f.shift[0] / (MARGIN * aspect)) * 0.5, 0.5 + (-f.shift[1] / MARGIN) * 0.5];
+  };
+
+  const bakeStep = () => {
+    if (!mapFb || bakedRows >= mapH) return;
+    const band = Math.max(8, Math.ceil(mapH / (opts.mobile ? 10 : 7)));
+    const f = FRAMES[tall ? "tall" : "wide"];
+    const c = cameraFor(f);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, mapFb);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
+    gl.viewport(0, 0, mapW, mapH);
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(0, bakedRows, mapW, band);
+    gl.disable(gl.BLEND);
+    gl.useProgram(bake.p);
+    gl.uniform2f(bake.u.uRes, mapW, mapH);
+    gl.uniform3fv(bake.u.uCam, c.cam);
+    gl.uniform3fv(bake.u.uRight, c.right);
+    gl.uniform3fv(bake.u.uUp, c.up);
+    gl.uniform3fv(bake.u.uFwd, c.fwd);
+    gl.uniform1f(bake.u.uTan, c.tan);
+    gl.uniform2f(bake.u.uShift, f.shift[0], f.shift[1]);
+    gl.uniform1f(bake.u.uMargin, MARGIN);
+    gl.uniform1f(bake.u.uRin, DISK.rin);
+    gl.uniform1f(bake.u.uRout, DISK.rout);
+    gl.bindVertexArray(vao);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.disable(gl.SCISSOR_TEST);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    bakedRows += band;
+  };
+
+  let quality = 1;
+  const resize = (q: number) => {
+    quality = q;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5) * quality;
+    const w = Math.max(2, Math.round(canvas.clientWidth * dpr));
+    const h = Math.max(2, Math.round(canvas.clientHeight * dpr));
+    if (canvas.width !== w || canvas.height !== h || !mapFb) {
+      canvas.width = w;
+      canvas.height = h;
+      startBake();
+    }
+  };
 
   return {
+    /** True once the lensing map is complete. */
     get ready() {
-      return count > 0;
+      return mapFb !== null && bakedRows >= mapH;
     },
-    resize(quality: number) {
-      dpr = Math.min(window.devicePixelRatio || 1, 2) * quality;
-      const w = Math.max(2, Math.round(canvas.clientWidth * dpr));
-      const h = Math.max(2, Math.round(canvas.clientHeight * dpr));
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
-      }
-      gl.viewport(0, 0, w, h);
-    },
+    resize,
     draw(s: HoleState) {
+      if (bakedRows < mapH) bakeStep();
+      gl.viewport(0, 0, canvas.width, canvas.height);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
-      const scale = s.radius / 3; // the dark disk is the photon sphere, r = 3M
-      const cx = s.center[0];
-      const cy = s.center[1];
-
-      if (count && s.intensity > 0.001) {
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE);
-        gl.useProgram(lines.p);
-        gl.uniform2f(lines.u.uRes, canvas.width, canvas.height);
-        gl.uniform2f(lines.u.uCenter, cx, cy);
-        gl.uniform1f(lines.u.uScale, scale);
-        gl.uniform1f(lines.u.uRot, BASE_ROT + s.turn);
-        gl.uniform1f(lines.u.uRelax, s.relax);
-        gl.uniform1f(lines.u.uMirror, s.mirror);
-        gl.uniform1f(lines.u.uTime, s.time);
-        gl.uniform1f(lines.u.uIntensity, s.intensity);
-        gl.bindVertexArray(lineVao);
-        // Soft glow, then the crisp core line.
-        gl.uniform1f(lines.u.uWidth, 9 * dpr);
-        gl.uniform1f(lines.u.uAlpha, 0.045);
-        gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_INT, 0);
-        gl.uniform1f(lines.u.uWidth, Math.max(1, 1.1 * dpr));
-        gl.uniform1f(lines.u.uAlpha, 0.38);
-        gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_INT, 0);
-        gl.bindVertexArray(null);
-      }
-
-      if (s.hole > 0.001) {
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-        gl.useProgram(hole.p);
-        gl.uniform2f(hole.u.uRes, canvas.width, canvas.height);
-        gl.uniform2f(hole.u.uCenter, cx * s.mirror, cy);
-        gl.uniform1f(hole.u.uRadius, s.radius);
-        gl.uniform1f(hole.u.uHole, s.hole);
-        gl.uniform1f(hole.u.uMirror, s.mirror);
-        gl.bindVertexArray(quadVao);
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
-        gl.bindVertexArray(null);
-      }
+      if (bakedRows < mapH) return;
+      const k = 1 - s.presence;
+      gl.useProgram(shade.p);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, hit1Tex);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, hit2Tex);
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, infoTex);
+      gl.activeTexture(gl.TEXTURE3);
+      gl.bindTexture(gl.TEXTURE_2D, noiseTex);
+      gl.uniform1i(shade.u.uHit1, 0);
+      gl.uniform1i(shade.u.uHit2, 1);
+      gl.uniform1i(shade.u.uInfo, 2);
+      gl.uniform1i(shade.u.uNoise, 3);
+      gl.uniform2f(shade.u.uRes, canvas.width, canvas.height);
+      gl.uniform1f(shade.u.uTime, s.time);
+      gl.uniform1f(shade.u.uMirror, s.mirror);
+      gl.uniform1f(shade.u.uMargin, MARGIN);
+      gl.uniform2f(shade.u.uAnchor, anchor[0], anchor[1]);
+      // Receding: smaller and further away, drifting in toward the middle of the
+      // screen so a distant, dim hole stays in view, its filaments softening.
+      gl.uniform1f(shade.u.uZoom, 1 - 0.42 * k);
+      gl.uniform2f(shade.u.uDrift, 0.17 * k, 0.02 * k);
+      gl.uniform1f(shade.u.uDetail, 1 - 0.5 * k);
+      gl.uniform1f(shade.u.uIntensity, s.intensity);
+      gl.uniform1f(shade.u.uClearSide, s.presence);
+      gl.uniform1f(shade.u.uTall, tall ? 1 : 0);
+      gl.uniform1f(shade.u.uRin, DISK.rin);
+      gl.uniform1f(shade.u.uRout, DISK.rout);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.bindVertexArray(vao);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
     },
     dispose() {
-      clearTimeout(buildTimer);
+      [hit1Tex, hit2Tex, infoTex, noiseTex].forEach((t) => t && gl.deleteTexture(t));
+      if (mapFb) gl.deleteFramebuffer(mapFb);
     },
   };
 }

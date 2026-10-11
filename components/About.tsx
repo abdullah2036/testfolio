@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Content } from "@/content/types";
 import { Display, Eyebrow } from "./primitives";
 
@@ -44,9 +45,11 @@ export default function About({ about }: { about: Content["about"] }) {
       <div className="scrolly__sticky">
         <div className="split split--about">
           <div className="stack-col">
-            <Eyebrow {...about.eyebrow} />
-            <Display heading={about.heading} />
-            <p className="body-text">{about.body}</p>
+            <Eyebrow {...about.eyebrow} reveal={0} />
+            <Display heading={about.heading} reveal={1} />
+            <p className="body-text" data-anim="rise" style={{ "--d": "0.4s" } as CSSProperties}>
+              {about.body}
+            </p>
             <div className="bars" aria-hidden="true">
               {about.steps.map((s) => (
                 <div key={s.label} className="bars__track bars__track--step">

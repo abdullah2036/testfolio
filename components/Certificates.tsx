@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import type { Certificate, Content } from "@/content/types";
 import DetailSheet from "./DetailSheet";
 import { Display, Eyebrow } from "./primitives";
@@ -24,7 +25,7 @@ export default function Certificates({ certificates, arrows, ui }: Props) {
       <div className="stack-col">
         <Eyebrow {...certificates.eyebrow} reveal={0} />
         <Display heading={certificates.heading} reveal={1} />
-        <p className="body-text" data-reveal={2}>
+        <p className="body-text" data-anim="rise" style={{ "--d": "0.4s" } as CSSProperties}>
           {certificates.body}
         </p>
       </div>

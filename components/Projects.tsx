@@ -2,8 +2,7 @@ import Image from "next/image";
 import type { CSSProperties } from "react";
 import type { Content, Project } from "@/content/types";
 import DetailSheet from "./DetailSheet";
-import ProjectCarousel from "./ProjectCarousel";
-import { CircleLink, Display, Eyebrow, GitHubIcon } from "./primitives";
+import { CircleLink, Display, Eyebrow, GitHubIcon, Roll } from "./primitives";
 
 type Props = { work: Content["work"]; arrows: Content["arrows"]; ui: Content["ui"] };
 
@@ -45,7 +44,6 @@ function DetailsButton({ p, label }: { p: Project; label: string }) {
 export default function Projects({ work, arrows, ui }: Props) {
   const featured = work.projects.find((p) => p.featured) ?? work.projects[0];
   const rest = work.projects.filter((p) => p !== featured);
-  const back = arrows.forward === "→" ? "←" : "→";
 
   return (
     <section id="work" className="work">
@@ -57,7 +55,7 @@ export default function Projects({ work, arrows, ui }: Props) {
 
         {/* Featured: the one project that gets the laptop. */}
         <div className="featured">
-          <div className="pinfo featured__info" data-reveal={0}>
+          <div className="pinfo featured__info" data-anim="rise" style={{ "--d": "0.1s" } as CSSProperties}>
             <Label p={featured} badge={work.featuredBadge} />
             <h3 className="pinfo__title">{featured.title}</h3>
             <p className="pinfo__desc">{featured.description}</p>
@@ -80,7 +78,7 @@ export default function Projects({ work, arrows, ui }: Props) {
             </div>
           </div>
 
-          <div className="laptop-wrap">
+          <div className="laptop-wrap" data-anim="screen">
             <div className="laptop" data-laptop>
               <div className="laptop__lid">
                 <div className="laptop__screen">
@@ -113,16 +111,28 @@ export default function Projects({ work, arrows, ui }: Props) {
           </div>
         </div>
 
-        {/* The rest: a swipeable rail. */}
-        <div className="more">
-          <h3 className="more__title" data-reveal={0}>
-            {work.moreTitle}
-          </h3>
-          <ProjectCarousel
-            count={rest.length}
-            labels={{ prev: ui.prev, next: ui.next, goTo: ui.goTo, region: work.moreTitle }}
-            arrows={{ prev: back, next: arrows.forward }}
-          >
+      </div>
+
+      {/*
+        The rest: a pinned horizontal sequence. Scrolling down moves the cards across,
+        synchronised with the scroll; the page carries on vertically afterwards.
+      */}
+      <div className="hrail" data-hrail aria-label={work.moreTitle}>
+        <div className="hrail__sticky">
+          <div className="hrail__head">
+            <h3 className="more__title" data-anim="rise">
+              {work.moreTitle}
+            </h3>
+            <div className="hrail__meter" aria-hidden="true">
+              <span className="hrail__count" dir="ltr">
+                <span data-hrail-index>01</span> / {String(rest.length).padStart(2, "0")}
+              </span>
+              <span className="hrail__bar">
+                <span data-hrail-bar />
+              </span>
+            </div>
+          </div>
+          <div className="hrail__track" data-hrail-track>
             {rest.map((p) => (
               <article key={p.id} className="pcard" data-pcard>
                 <div className="pcard__body">
@@ -157,17 +167,18 @@ export default function Projects({ work, arrows, ui }: Props) {
                 </div>
               </article>
             ))}
-          </ProjectCarousel>
-          <div className="work__foot">
-            <a className="gh-btn" href={work.allWork.href} target="_blank" rel="noopener">
-              <GitHubIcon className="gh-btn__icon" />
-              <span>{work.allWork.label}</span>
-              <span className="gh-btn__handle" dir="ltr">
-                {work.allWork.handle}
-              </span>
-            </a>
           </div>
         </div>
+      </div>
+
+      <div className="work__foot">
+        <a className="gh-btn" href={work.allWork.href} target="_blank" rel="noopener" data-anim="rise">
+          <GitHubIcon className="gh-btn__icon" />
+          <Roll>{work.allWork.label}</Roll>
+          <span className="gh-btn__handle" dir="ltr">
+            {work.allWork.handle}
+          </span>
+        </a>
       </div>
 
       {work.projects.map((p) => (

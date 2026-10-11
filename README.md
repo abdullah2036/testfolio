@@ -24,9 +24,9 @@ npm run build
 | `app/[lang]/page.tsx` | Section order |
 | `components/*.tsx` | One file per section |
 | `components/MotionEngine.tsx` | The single rAF loop: smoothed scroll, sticky-section effects, reveals and the contact arc |
-| `lib/blackhole.ts` | The sky: photon paths traced round a Schwarzschild black hole, drawn as crisp lines; on scroll the hole fades and the light relaxes into the background field |
+| `lib/blackhole.ts` | The sky: a ray-traced Schwarzschild black hole. A lensing map is baked once on the GPU; the accretion disk is re-shaded every frame with Keplerian flow, then recedes into background atmosphere on scroll |
 | `lib/ribbon.ts` | The contact section's arc ribbon (the design prototype's shader) |
-| `components/ProjectCarousel.tsx` | The "more projects" rail: native scroll + snap, coverflow, mouse drag, arrows, dots |
+| `components/Interactions.tsx` | Entrance reveals (`data-anim`: lines, wipe, rise, screen) and magnetic CTAs |
 | `components/DetailSheet.tsx`, `DetailController.tsx` | Glass detail cards (`<dialog>`) for projects and certificates |
 | `public/projects/` | Laptop screenshots (16:10 crops from the top) |
 | `public/certs/` | Certificate images |

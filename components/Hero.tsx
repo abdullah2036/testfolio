@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Content } from "@/content/types";
 import { CircleLink, Display, Eyebrow } from "./primitives";
 
@@ -6,10 +7,12 @@ export default function Hero({ hero, arrows }: { hero: Content["hero"]; arrows: 
     <section id="top" className="hero">
       <div className="hero__inner">
         <div className="hero__text" data-hero-text>
-          <Eyebrow {...hero.eyebrow} />
-          <Display as="h1" variant="hero" heading={hero.heading} />
-          <p className="hero__lede">{hero.lede}</p>
-          <div className="hero__actions">
+          <Eyebrow {...hero.eyebrow} delay={0.15} />
+          <Display as="h1" variant="hero" heading={hero.heading} delay={0.25} />
+          <p className="hero__lede" data-anim="rise" style={{ "--d": "0.62s" } as CSSProperties}>
+            {hero.lede}
+          </p>
+          <div className="hero__actions" data-anim="rise" style={{ "--d": "0.78s" } as CSSProperties}>
             <CircleLink href="#work" arrow={arrows.forward} kind="forward">
               {hero.cta}
             </CircleLink>
@@ -17,7 +20,7 @@ export default function Hero({ hero, arrows }: { hero: Content["hero"]; arrows: 
           </div>
         </div>
       </div>
-      <div className="hero__rail wide-only" aria-hidden="true">
+      <div className="hero__rail wide-only" aria-hidden="true" data-anim="rise" style={{ "--d": "1s" } as CSSProperties}>
         <span className="hero__rail-line" />
         {hero.rail.map((w) => (
           <span key={w}>{w}</span>
