@@ -280,8 +280,8 @@ export default function MotionEngine() {
       const handOff = smooth(C.top - vh * 1.2, C.top - vh * 0.3, sy);
       return {
         presence,
-        aurora: 0.42 * (1 - 0.7 * handOff),
-        shape: (sy / vh) * 0.4,
+        aurora: 0.3 * (1 - handOff),
+        shape: (sy / vh) * 0.55,
         intensity: lerp(0.55, 1, presence) * (1 - 0.55 * handOff),
         mirror,
         time: t,

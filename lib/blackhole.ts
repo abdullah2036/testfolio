@@ -47,11 +47,19 @@ type Frame = {
 
 // From outside the disk with a long lens: nearly edge-on, rolled, the hole pushed past the reading-end edge.
 const FRAMES: Record<"wide" | "tall", Frame> = {
-  wide: { dist: 15, elev: 4, roll: -2, fov: 30, shift: [-2.3, 0.09] },
+  wide: { dist: 15, elev: 4, roll: -23, fov: 30, shift: [-2.25, -0.6] },
   tall: { dist: 15, elev: 7, roll: 22, fov: 34, shift: [-0.62, -0.85] },
 };
 
-const DISK = { rin: 2.4, rout: 11 };
+const DISK = { rin: 2.4, rout: 9 };
+
+// Where the disk's light horizon runs on screen (fractions; x from the reading-start
+// edge, y from the bottom): its point, then a point toward the hole. The aurora is
+// born along this line.
+const HORIZON: Record<"wide" | "tall", [number, number, number, number]> = {
+  wide: [0.4, 0.17, 0.98, 0.8],
+  tall: [0.12, 0.5, 0.95, 0.88],
+};
 const MARGIN = 1.35; // the baked map covers more than the screen so the scene can recede
 
 const QUAD_VS = `#version 300 es
@@ -87,6 +95,7 @@ void main() {
   vec4 h2v = vec4(-1.0, 1.0, 0.0, 0.0);
   float rmin = 1e4;
   float n = 0.0;
+  float haze = 0.0;
   bool captured = false;
   for (int i = 0; i < 420; i++) {
     float r = length(p);
@@ -98,6 +107,10 @@ void main() {
     vec3 pp = p;
     v += a * dt;
     p += v * dt;
+    // The disk has thickness: gather the faint glow of gas just above and below its
+    // plane, so it never collapses to a razor line when seen edge-on.
+    float rh = length(p.xz);
+    if (rh > uRin && rh < uRout) haze += exp(-abs(p.y) / 0.16) * pow(uRin / rh, 2.0) * smoothstep(uRout, uRout * 0.4, rh) * dt;
     if (pp.y * p.y < 0.0) {
       vec3 q = mix(pp, p, pp.y / (pp.y - p.y));
       float rq = length(q.xz);
@@ -117,7 +130,7 @@ void main() {
   }
   oHit1 = h1;
   oHit2 = h2v;
-  oInfo = vec4(captured ? -rmin : rmin, n, 0.0, 0.0);
+  oInfo = vec4(captured ? -rmin : rmin, n, haze, 0.0);
 }`;
 
 // Tileable noise for the disk's filaments, generated once on the GPU.
@@ -175,6 +188,10 @@ uniform float uRout;
 uniform float uHole;     // visibility of the black hole
 uniform float uAurora;   // strength of the aurora that takes over below the hero
 uniform float uShape;    // scroll-driven shape of the aurora
+uniform float uMorph;    // 0 = aurora lies along the hole's horizon, 1 = free aurora
+uniform vec4 uLine;      // the hole's horizon: disk point (xy) to hole side (zw), centred units
+uniform float uAuroraGain;
+uniform float uRoll;
 uniform float uAspect;
 out vec4 outColor;
 
@@ -209,7 +226,7 @@ vec4 disk(float r, float phi, float D) {
   float w = abs(t1 * 2.0 - 1.0);
   float bias = (1.0 - uDetail) * 2.5;
   float n = mix(flowNoise(r, phi, t1 * cycle * 0.11, bias), flowNoise(r, phi + 1.7, t2 * cycle * 0.11, bias), w);
-  float profile = smoothstep(uRin, uRin + 0.35, r) * pow(uRin / r, 1.8) * (1.0 - smoothstep(uRout * 0.4, uRout, r));
+  float profile = smoothstep(uRin, uRin + 1.3, r) * pow(uRin / r, 1.8) * (1.0 - smoothstep(uRout * 0.22, uRout * 0.95, r));
   float beam = D * D * D;
   // Bright filaments over a faint haze of the same gas.
   float I = profile * (0.04 + 0.35 * n + 1.25 * n * n * n) * beam;
@@ -222,25 +239,49 @@ vec4 disk(float r, float phi, float D) {
   return vec4(col * I, clamp(I * 1.4, 0.0, 1.0));
 }
 
-// Aurora curtains above a slowly wandering base line, in the disk's palette.
-// Folds drift along the band and the rays breathe; the base line reshapes with scroll.
-vec3 aurora(vec2 s) {
+// The original aurora (from the globe version), ported as it was: curtains of rays
+// above a wandering base line, gathered in patches, folding and drifting slowly.
+float ahash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float anoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(ahash(i), ahash(i + vec2(1, 0)), u.x), mix(ahash(i + vec2(0, 1)), ahash(i + vec2(1, 1)), u.x), u.y);
+}
+float afbm(vec2 p) {
+  float v = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++) { v += a * anoise(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return v;
+}
+vec3 aurPal(float h) {
+  vec3 a = vec3(0.16, 0.95, 0.72), b = vec3(0.24, 0.62, 1.0), c = vec3(0.64, 0.46, 1.0);
+  return h < 0.5 ? mix(a, b, h * 2.0) : mix(b, c, (h - 0.5) * 2.0);
+}
+vec3 curtain(float s, float h, float t, float hue, float height) {
+  if (h < -0.04 || h > height * 4.0) return vec3(0.0);
+  float n = afbm(vec2(s * 5.0 + t * 0.05, h * 1.1 - t * 0.07));
+  float clump = smoothstep(0.32, 0.72, afbm(vec2(s * 1.3 + t * 0.025, 3.7)));
+  float rays = afbm(vec2(s * 20.0 + n * 3.2 + t * 0.08, h * 0.9));
+  float folds = 0.5 + 0.5 * sin(s * 3.8 + n * 5.0 + t * 0.15);
+  float bottom = smoothstep(-0.035, 0.015, h);
+  float fall = exp(-max(h, 0.0) / (height * (0.6 + 0.8 * rays)));
+  float k = bottom * fall * (0.15 + 0.85 * clump) * (0.3 + 0.9 * rays * rays) * (0.4 + 0.6 * folds);
+  vec3 col = aurPal(clamp(hue + h / height * 0.3 + (n - 0.5) * 0.3, 0.0, 1.0)) * k;
+  col += vec3(0.45, 1.0, 0.85) * exp(-abs(h) * 70.0) * 0.25 * folds;
+  return col;
+}
+// The aurora's base line starts as the black hole's own light horizon (a straight
+// line from the disk's point to the hole) and bends into the free, wandering line.
+vec3 aurora(vec2 p, float sx) {
   float t = uTime;
-  vec2 p = vec2(s.x * uAspect, s.y);
-  float base = 0.3 + 0.07 * sin(p.x * 1.2 + t * 0.045 + uShape) + 0.035 * sin(p.x * 2.9 - t * 0.06 - uShape * 0.7);
-  float h = p.y - base;
-  if (h < -0.08 || h > 0.75) return vec3(0.0);
-  float n = texture(uNoise, vec2(p.x * 0.32 + t * 0.0035, 0.37 + t * 0.0016), 1.5).r;
-  float rays = texture(uNoise, vec2(p.x * 1.5 + n * 0.7 + t * 0.005, h * 0.22 + 0.11), 1.2).b;
-  float folds = 0.45 + 0.55 * sin(p.x * 3.1 + n * 5.0 + t * 0.07);
-  float bottom = smoothstep(-0.07, 0.03, h);
-  float fall = exp(-max(h, 0.0) / (0.12 + 0.2 * rays));
-  float k = bottom * fall * (0.25 + 1.2 * rays * rays) * (0.35 + 0.65 * folds) * (0.5 + 0.8 * n);
-  float across = clamp(s.x * 1.1 - 0.05 + 0.15 * sin(t * 0.03 + uShape), 0.0, 1.0);
-  vec3 low = mix(TEAL, BLUE, across);
-  vec3 col = mix(low, VIOLET, smoothstep(0.02, 0.45, h) * 0.8);
-  col += vec3(0.5, 1.0, 0.9) * exp(-abs(h) * 60.0) * 0.18 * folds; // bright lower hem
-  return col * k;
+  float x = p.x;
+  float baseFree = -0.2 + 0.13 * sin(x * 1.5 + uShape * 1.3 + t * 0.05) + 0.06 * sin(x * 3.4 - uShape * 0.8 + t * 0.07);
+  float slope = (uLine.w - uLine.y) / (uLine.z - uLine.x);
+  float baseHole = uLine.y + (x - uLine.x) * slope;
+  float base = mix(baseHole, baseFree, uMorph);
+  float height = mix(0.045, 0.3, uMorph);
+  float reach = mix(smoothstep(uLine.x - 0.06, uLine.x + 0.3, x), 1.0, uMorph);
+  float hueX = clamp((sx - 0.3) / 0.65, 0.0, 1.0);
+  return curtain(x * 0.75 + uShape * 0.15, p.y - base, t, clamp(hueX + 0.15 * sin(uShape * 0.7), 0.0, 1.0), height) * reach;
 }
 
 void main() {
@@ -248,7 +289,7 @@ void main() {
   if (uMirror < 0.0) s.x = 1.0 - s.x;
   vec2 m = 0.5 + (s - 0.5) / uMargin;
   m = uAnchor + (m - uAnchor) / uZoom + uDrift;
-  float inside = smoothstep(0.0, 0.04, m.x) * smoothstep(1.0, 0.96, m.x) * smoothstep(0.0, 0.04, m.y) * smoothstep(1.0, 0.96, m.y);
+  float inside = smoothstep(0.0, 0.16, m.x) * smoothstep(1.0, 0.84, m.x) * smoothstep(0.0, 0.16, m.y) * smoothstep(1.0, 0.84, m.y);
   vec4 A = texture(uHit1, m);
   vec4 B = texture(uHit2, m);
   vec4 F = texture(uInfo, m);
@@ -264,28 +305,42 @@ void main() {
     vec4 d = disk(B.x, atan(B.z, B.y), B.w);
     col += d.rgb * (1.0 - cover) * 0.9;
   }
-  // Photon ring: rays that skim the photon sphere (r = 1.5) before escaping.
+  col += mix(BLUE, CYAN, 0.35) * F.z * 0.22;
+  // Rays that skim the photon sphere squeeze the disk into hairline rings round the
+  // shadow, too thin to draw cleanly: let them melt into the dark instead.
   float rmin = abs(F.x);
-  if (F.x > 0.0) {
+  col *= smoothstep(1.62, 2.5, rmin);
+  // Photon ring: a soft glow only.
+  // (Blending across the shadow's edge can yield values below the photon sphere;
+  // only true escaping rays count, and the glow is clamped.)
+  if (F.x > 1.5) {
     vec2 toHole = m - uAnchor;
     float side = smoothstep(-0.15, 0.7, -toHole.x / max(length(toHole), 1e-4));
-    col += CYAN * exp(-(rmin - 1.5) * 9.0) * (0.06 + 0.32 * side) * uClearSide;
-    col += BLUE * exp(-(rmin - 1.5) * 1.8) * 0.04;
+    // A soft glow where light skims the photon sphere; no hard ring line.
+    float skim = max(rmin - 1.5, 0.0);
+    col += CYAN * exp(-skim * 3.2) * (0.02 + 0.1 * side) * smoothstep(1.5, 1.6, rmin);
+    col += BLUE * exp(-skim * 1.4) * 0.03 * smoothstep(1.5, 1.6, rmin);
   }
   // Palette by arm: the upper arm (light lensed over the hole) runs cyan-teal,
   // the lower arm violet, meeting in blue at the point of the disk.
-  float arm = smoothstep(-0.14, 0.2, m.y - uAnchor.y);
+  // Measured across the band (the view is rolled), so the split follows its tilt.
+  vec2 rel = vec2((m.x - uAnchor.x) * uAspect, m.y - uAnchor.y);
+  float across = rel.y * cos(uRoll) + rel.x * sin(uRoll);
+  float arm = smoothstep(-0.14, 0.2, across);
   float lum = max(col.r, max(col.g, col.b));
   vec3 tint = mix(mix(VIOLET, BLUE, smoothstep(0.0, 0.5, arm)), mix(BLUE, TEAL, 0.6), smoothstep(0.5, 1.0, arm));
   col = mix(col, tint * lum * 1.1, 0.55);
   // Keep the headline's side in near-darkness: the reading-start side on wide
   // screens, the bottom on tall ones (where the hero text sits on phones).
-  float side = uTall > 0.5 ? smoothstep(0.3, 0.62, s.y) : smoothstep(0.22, 0.52, s.x);
+  float side = uTall > 0.5 ? smoothstep(0.22, 0.66, s.y) : 1.0;
   float clear = mix(1.0, side, uClearSide);
   col *= uIntensity * inside * clear * uHole;
-  vec2 sa = gl_FragCoord.xy / uRes;
-  if (uMirror < 0.0) sa.x = 1.0 - sa.x;
-  if (uAurora > 0.001) col += aurora(sa) * uAurora;
+  if (uAurora * uAuroraGain > 0.001) {
+    vec2 pa = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
+    float sx = gl_FragCoord.x / uRes.x;
+    if (uMirror < 0.0) { pa.x = -pa.x; sx = 1.0 - sx; }
+    col += aurora(pa, sx) * uAurora * uAuroraGain;
+  }
   col = 1.0 - exp(-col * 1.15);
   float a = clamp(max(col.r, max(col.g, col.b)) * 1.15, 0.0, 1.0);
   outColor = vec4(col, a);
@@ -368,7 +423,7 @@ export function createBlackHole(canvas: HTMLCanvasElement, opts: { mobile: boole
   const blur = program(gl, BLUR_FS, ["uTex", "uStep", "uRes"]);
   const glow = program(gl, GLOW_FS, ["uTex", "uRes", "uStrength"]);
   const shade = program(gl, SHADE_FS, [
-    "uRes", "uHit1", "uHit2", "uInfo", "uNoise", "uTime", "uMirror", "uMargin", "uAnchor", "uZoom", "uDrift", "uDetail", "uIntensity", "uClearSide", "uTall", "uHole", "uAurora", "uShape", "uAspect", "uRin", "uRout",
+    "uRes", "uHit1", "uHit2", "uInfo", "uNoise", "uTime", "uMirror", "uMargin", "uAnchor", "uZoom", "uDrift", "uDetail", "uIntensity", "uClearSide", "uTall", "uHole", "uAurora", "uShape", "uAspect", "uMorph", "uLine", "uAuroraGain", "uRoll", "uRin", "uRout",
   ]);
 
   const vao = gl.createVertexArray();
@@ -523,7 +578,7 @@ export function createBlackHole(canvas: HTMLCanvasElement, opts: { mobile: boole
       const k = 1 - s.presence;
       gl.bindVertexArray(vao);
 
-      const shadeTo = (w: number, h: number) => {
+      const shadeTo = (w: number, h: number, gain: number) => {
         gl.useProgram(shade.p);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, hit1Tex);
@@ -544,17 +599,25 @@ export function createBlackHole(canvas: HTMLCanvasElement, opts: { mobile: boole
         gl.uniform2f(shade.u.uAnchor, anchor[0], anchor[1]);
         // Receding: smaller and further away, drifting in toward the middle of the
         // screen so a distant, dim hole stays in view, its filaments softening.
-        gl.uniform1f(shade.u.uZoom, 1 - 0.42 * k);
-        gl.uniform2f(shade.u.uDrift, 0.17 * k, 0.02 * k);
-        gl.uniform1f(shade.u.uDetail, 1 - 0.5 * k);
+        gl.uniform1f(shade.u.uZoom, 1);
+        gl.uniform2f(shade.u.uDrift, 0, 0);
+        gl.uniform1f(shade.u.uDetail, 1 - 0.7 * k);
         gl.uniform1f(shade.u.uIntensity, s.intensity);
         gl.uniform1f(shade.u.uClearSide, s.presence);
         gl.uniform1f(shade.u.uTall, tall ? 1 : 0);
-        // The hole recedes and dissolves while the aurora rises to take its place.
-        gl.uniform1f(shade.u.uHole, smoothstep(0.08, 0.75, s.presence));
-        gl.uniform1f(shade.u.uAurora, (1 - smoothstep(0.25, 0.95, s.presence)) * s.aurora);
+        // One light changing shape: the aurora is born thin along the hole's horizon as
+        // the hole dissolves, then its line bends free and its curtains rise.
+        gl.uniform1f(shade.u.uHole, smoothstep(0.12, 0.72, s.presence));
+        // Born carrying the disk's brightness, then settling to its calm level.
+        gl.uniform1f(shade.u.uAurora, smoothstep(0.04, 0.4, k) * s.aurora * (1 + 2.4 * (1 - smoothstep(0.45, 1, k))));
+        gl.uniform1f(shade.u.uMorph, smoothstep(0.32, 0.96, k));
+        gl.uniform1f(shade.u.uAuroraGain, gain);
+        gl.uniform1f(shade.u.uRoll, (FRAMES[tall ? "tall" : "wide"].roll * Math.PI) / 180);
         gl.uniform1f(shade.u.uShape, s.shape);
         gl.uniform1f(shade.u.uAspect, canvas.width / canvas.height);
+        const asp = canvas.width / canvas.height;
+        const L = HORIZON[tall ? "tall" : "wide"];
+        gl.uniform4f(shade.u.uLine, (L[0] - 0.5) * asp, L[1] - 0.5, (L[2] - 0.5) * asp, L[3] - 0.5);
         gl.uniform1f(shade.u.uRin, DISK.rin);
         gl.uniform1f(shade.u.uRout, DISK.rout);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -564,7 +627,7 @@ export function createBlackHole(canvas: HTMLCanvasElement, opts: { mobile: boole
       gl.disable(gl.BLEND);
       gl.bindFramebuffer(gl.FRAMEBUFFER, bloomFb[0]);
       gl.viewport(0, 0, bloomW, bloomH);
-      shadeTo(bloomW, bloomH);
+      shadeTo(bloomW, bloomH, 0); // the aurora stays out of the glow, as it was originally
       gl.useProgram(blur.p);
       gl.uniform1i(blur.u.uTex, 0);
       gl.uniform2f(blur.u.uRes, bloomW, bloomH);
@@ -585,7 +648,7 @@ export function createBlackHole(canvas: HTMLCanvasElement, opts: { mobile: boole
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      shadeTo(canvas.width, canvas.height);
+      shadeTo(canvas.width, canvas.height, 1);
 
       // 3. The glow laid over it, so the streams merge and bloom into the dark.
       gl.blendFunc(gl.ONE, gl.ONE);
