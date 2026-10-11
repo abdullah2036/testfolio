@@ -19,7 +19,16 @@
  * loses filament detail) until only faint, slow light remains behind the content.
  */
 
+const smoothstep = (a: number, b: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
 export type HoleState = {
+  /** Strength of the aurora once the hole has gone (fades near Contact). */
+  aurora: number;
+  /** Scroll-driven shape of the aurora. */
+  shape: number;
   /** 1 = full hero presence, 0 = faint background. */
   presence: number;
   /** Overall brightness multiplier. */
@@ -38,7 +47,7 @@ type Frame = {
 
 // From outside the disk with a long lens: nearly edge-on, rolled, the hole pushed past the reading-end edge.
 const FRAMES: Record<"wide" | "tall", Frame> = {
-  wide: { dist: 15, elev: 4, roll: 7, fov: 30, shift: [-2.15, 0.04] },
+  wide: { dist: 15, elev: 4, roll: -2, fov: 30, shift: [-2.3, 0.09] },
   tall: { dist: 15, elev: 7, roll: 22, fov: 34, shift: [-0.62, -0.85] },
 };
 
@@ -163,6 +172,10 @@ uniform float uClearSide;
 uniform float uTall;
 uniform float uRin;
 uniform float uRout;
+uniform float uHole;     // visibility of the black hole
+uniform float uAurora;   // strength of the aurora that takes over below the hero
+uniform float uShape;    // scroll-driven shape of the aurora
+uniform float uAspect;
 out vec4 outColor;
 
 const vec3 TEAL = vec3(0.30, 0.98, 0.86);
@@ -175,16 +188,18 @@ float flowNoise(float r, float phi, float phase, float bias) {
   float omega = 2.4 * pow(r, -1.5);
   float u = phi / 6.2831853 - omega * phase;
   float v = log(r) * 1.35;
-  // Long along the orbit, thin across it: luminous filaments rather than grain.
-  float soft = texture(uNoise, vec2(u * 1.0, v * 1.1), bias).r;
-  float mid = texture(uNoise, vec2(u * 1.0 + 0.4, v * 2.6 + 0.3), bias).g;
-  float ridge = texture(uNoise, vec2(u * 1.0 + 0.11, v * 4.2), bias).b;
-  float fine = texture(uNoise, vec2(u * 2.0 - 0.27, v * 6.5), bias).a;
-  float filaments = pow(ridge, 5.0) * 1.0 + pow(fine, 7.0) * 0.55;
-  // Clumps of brighter gas, short along the orbit, so the flow is visible as they travel round.
-  float knots = texture(uNoise, vec2(u * 7.0 + 0.5, v * 1.6 - 0.2), bias).g;
-  float clump = 0.45 + 1.1 * smoothstep(0.42, 0.78, knots);
-  return (soft * 0.45 + mid * 0.35 + filaments * mix(0.2, 1.5, uDetail)) * clump;
+  // Streams of gas, long along the orbit: broad, soft bands with gentler filaments
+  // inside them, so the light reads as one flowing body rather than separate lines.
+  float b = bias + 0.9;
+  float soft = texture(uNoise, vec2(u * 1.0, v * 0.8), b).r;
+  float mid = texture(uNoise, vec2(u * 1.0 + 0.4, v * 1.7 + 0.3), b).g;
+  float ridge = texture(uNoise, vec2(u * 1.0 + 0.11, v * 2.6), b).b;
+  float fine = texture(uNoise, vec2(u * 2.0 - 0.27, v * 4.0), b + 0.4).a;
+  float filaments = pow(ridge, 2.2) * 0.75 + pow(fine, 3.0) * 0.25;
+  // Clumps of brighter gas travelling round with the flow.
+  float knots = texture(uNoise, vec2(u * 6.0 + 0.5, v * 1.3 - 0.2), b).g;
+  float clump = 0.6 + 0.8 * smoothstep(0.38, 0.8, knots);
+  return (soft * 0.55 + mid * 0.4 + filaments * mix(0.35, 1.0, uDetail)) * clump;
 }
 
 vec4 disk(float r, float phi, float D) {
@@ -197,7 +212,7 @@ vec4 disk(float r, float phi, float D) {
   float profile = smoothstep(uRin, uRin + 0.35, r) * pow(uRin / r, 1.8) * (1.0 - smoothstep(uRout * 0.4, uRout, r));
   float beam = D * D * D;
   // Bright filaments over a faint haze of the same gas.
-  float I = profile * (0.02 + 0.12 * n + 1.7 * n * n * n * n) * beam;
+  float I = profile * (0.04 + 0.35 * n + 1.25 * n * n * n) * beam;
   // Hotter (whiter, cyan) inside and on the approaching side; violet outside and receding.
   vec3 col = mix(VIOLET, BLUE, smoothstep(uRout * 0.75, uRout * 0.35, r));
   col = mix(col, CYAN, smoothstep(6.5, 3.2, r) * 0.85);
@@ -205,6 +220,27 @@ vec4 disk(float r, float phi, float D) {
   col = mix(col, VIOLET, clamp((1.0 - D) * 1.8, 0.0, 1.0) * 0.75);
   col = mix(col, vec3(0.9, 0.98, 1.0), smoothstep(1.2, 3.2, I) * 0.45);
   return vec4(col * I, clamp(I * 1.4, 0.0, 1.0));
+}
+
+// Aurora curtains above a slowly wandering base line, in the disk's palette.
+// Folds drift along the band and the rays breathe; the base line reshapes with scroll.
+vec3 aurora(vec2 s) {
+  float t = uTime;
+  vec2 p = vec2(s.x * uAspect, s.y);
+  float base = 0.3 + 0.07 * sin(p.x * 1.2 + t * 0.045 + uShape) + 0.035 * sin(p.x * 2.9 - t * 0.06 - uShape * 0.7);
+  float h = p.y - base;
+  if (h < -0.08 || h > 0.75) return vec3(0.0);
+  float n = texture(uNoise, vec2(p.x * 0.32 + t * 0.0035, 0.37 + t * 0.0016), 1.5).r;
+  float rays = texture(uNoise, vec2(p.x * 1.5 + n * 0.7 + t * 0.005, h * 0.22 + 0.11), 1.2).b;
+  float folds = 0.45 + 0.55 * sin(p.x * 3.1 + n * 5.0 + t * 0.07);
+  float bottom = smoothstep(-0.07, 0.03, h);
+  float fall = exp(-max(h, 0.0) / (0.12 + 0.2 * rays));
+  float k = bottom * fall * (0.25 + 1.2 * rays * rays) * (0.35 + 0.65 * folds) * (0.5 + 0.8 * n);
+  float across = clamp(s.x * 1.1 - 0.05 + 0.15 * sin(t * 0.03 + uShape), 0.0, 1.0);
+  vec3 low = mix(TEAL, BLUE, across);
+  vec3 col = mix(low, VIOLET, smoothstep(0.02, 0.45, h) * 0.8);
+  col += vec3(0.5, 1.0, 0.9) * exp(-abs(h) * 60.0) * 0.18 * folds; // bright lower hem
+  return col * k;
 }
 
 void main() {
@@ -219,12 +255,12 @@ void main() {
 
   vec3 col = vec3(0.0);
   float cover = 0.0;
-  if (A.x > 0.0) {
+  if (uHole > 0.001 && A.x > 0.0) {
     vec4 d = disk(A.x, atan(A.z, A.y), A.w);
     col += d.rgb;
     cover = d.a;
   }
-  if (B.x > 0.0) {
+  if (uHole > 0.001 && B.x > 0.0) {
     vec4 d = disk(B.x, atan(B.z, B.y), B.w);
     col += d.rgb * (1.0 - cover) * 0.9;
   }
@@ -244,12 +280,41 @@ void main() {
   col = mix(col, tint * lum * 1.1, 0.55);
   // Keep the headline's side in near-darkness: the reading-start side on wide
   // screens, the bottom on tall ones (where the hero text sits on phones).
-  float side = uTall > 0.5 ? smoothstep(0.3, 0.62, s.y) : smoothstep(0.1, 0.46, s.x);
+  float side = uTall > 0.5 ? smoothstep(0.3, 0.62, s.y) : smoothstep(0.22, 0.52, s.x);
   float clear = mix(1.0, side, uClearSide);
-  col *= uIntensity * inside * clear;
+  col *= uIntensity * inside * clear * uHole;
+  vec2 sa = gl_FragCoord.xy / uRes;
+  if (uMirror < 0.0) sa.x = 1.0 - sa.x;
+  if (uAurora > 0.001) col += aurora(sa) * uAurora;
   col = 1.0 - exp(-col * 1.15);
   float a = clamp(max(col.r, max(col.g, col.b)) * 1.15, 0.0, 1.0);
   outColor = vec4(col, a);
+}`;
+
+// Bloom: a 9-tap Gaussian, run horizontally then vertically at quarter resolution.
+const BLUR_FS = `#version 300 es
+precision highp float;
+uniform sampler2D uTex;
+uniform vec2 uStep;
+uniform vec2 uRes;
+out vec4 o;
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes;
+  vec4 c = texture(uTex, uv) * 0.2270270;
+  c += (texture(uTex, uv + uStep * 1.3846154) + texture(uTex, uv - uStep * 1.3846154)) * 0.3162162;
+  c += (texture(uTex, uv + uStep * 3.2307692) + texture(uTex, uv - uStep * 3.2307692)) * 0.0702703;
+  o = c;
+}`;
+
+const GLOW_FS = `#version 300 es
+precision highp float;
+uniform sampler2D uTex;
+uniform vec2 uRes;
+uniform float uStrength;
+out vec4 o;
+void main() {
+  vec4 c = texture(uTex, gl_FragCoord.xy / uRes) * uStrength;
+  o = vec4(c.rgb, max(c.r, max(c.g, c.b)));
 }`;
 
 function compile(gl: WebGL2RenderingContext, type: number, src: string) {
@@ -300,8 +365,10 @@ export function createBlackHole(canvas: HTMLCanvasElement, opts: { mobile: boole
 
   const bake = program(gl, BAKE_FS, ["uRes", "uCam", "uRight", "uUp", "uFwd", "uTan", "uShift", "uMargin", "uRin", "uRout"]);
   const noiseProg = program(gl, NOISE_FS, ["uRes"]);
+  const blur = program(gl, BLUR_FS, ["uTex", "uStep", "uRes"]);
+  const glow = program(gl, GLOW_FS, ["uTex", "uRes", "uStrength"]);
   const shade = program(gl, SHADE_FS, [
-    "uRes", "uHit1", "uHit2", "uInfo", "uNoise", "uTime", "uMirror", "uMargin", "uAnchor", "uZoom", "uDrift", "uDetail", "uIntensity", "uClearSide", "uTall", "uRin", "uRout",
+    "uRes", "uHit1", "uHit2", "uInfo", "uNoise", "uTime", "uMirror", "uMargin", "uAnchor", "uZoom", "uDrift", "uDetail", "uIntensity", "uClearSide", "uTall", "uHole", "uAurora", "uShape", "uAspect", "uRin", "uRout",
   ]);
 
   const vao = gl.createVertexArray();
@@ -408,6 +475,24 @@ export function createBlackHole(canvas: HTMLCanvasElement, opts: { mobile: boole
     bakedRows += band;
   };
 
+  // Two quarter-resolution targets for the glow pass.
+  let bloomW = 0, bloomH = 0;
+  const bloomTex: (WebGLTexture | null)[] = [null, null];
+  const bloomFb: (WebGLFramebuffer | null)[] = [null, null];
+  const sizeBloom = () => {
+    bloomW = Math.max(8, Math.round(canvas.width / 4));
+    bloomH = Math.max(8, Math.round(canvas.height / 4));
+    for (let i = 0; i < 2; i++) {
+      if (bloomTex[i]) gl.deleteTexture(bloomTex[i]);
+      if (bloomFb[i]) gl.deleteFramebuffer(bloomFb[i]);
+      bloomTex[i] = texture(bloomW, bloomH, gl.RGBA16F, gl.RGBA, gl.HALF_FLOAT, gl.LINEAR, gl.CLAMP_TO_EDGE);
+      bloomFb[i] = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, bloomFb[i]);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, bloomTex[i], 0);
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  };
+
   let quality = 1;
   const resize = (q: number) => {
     quality = q;
@@ -418,6 +503,7 @@ export function createBlackHole(canvas: HTMLCanvasElement, opts: { mobile: boole
       canvas.width = w;
       canvas.height = h;
       startBake();
+      sizeBloom();
     }
   };
 
@@ -429,46 +515,91 @@ export function createBlackHole(canvas: HTMLCanvasElement, opts: { mobile: boole
     resize,
     draw(s: HoleState) {
       if (bakedRows < mapH) bakeStep();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       if (bakedRows < mapH) return;
       const k = 1 - s.presence;
-      gl.useProgram(shade.p);
+      gl.bindVertexArray(vao);
+
+      const shadeTo = (w: number, h: number) => {
+        gl.useProgram(shade.p);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, hit1Tex);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, hit2Tex);
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, infoTex);
+        gl.activeTexture(gl.TEXTURE3);
+        gl.bindTexture(gl.TEXTURE_2D, noiseTex);
+        gl.uniform1i(shade.u.uHit1, 0);
+        gl.uniform1i(shade.u.uHit2, 1);
+        gl.uniform1i(shade.u.uInfo, 2);
+        gl.uniform1i(shade.u.uNoise, 3);
+        gl.uniform2f(shade.u.uRes, w, h);
+        gl.uniform1f(shade.u.uTime, s.time);
+        gl.uniform1f(shade.u.uMirror, s.mirror);
+        gl.uniform1f(shade.u.uMargin, MARGIN);
+        gl.uniform2f(shade.u.uAnchor, anchor[0], anchor[1]);
+        // Receding: smaller and further away, drifting in toward the middle of the
+        // screen so a distant, dim hole stays in view, its filaments softening.
+        gl.uniform1f(shade.u.uZoom, 1 - 0.42 * k);
+        gl.uniform2f(shade.u.uDrift, 0.17 * k, 0.02 * k);
+        gl.uniform1f(shade.u.uDetail, 1 - 0.5 * k);
+        gl.uniform1f(shade.u.uIntensity, s.intensity);
+        gl.uniform1f(shade.u.uClearSide, s.presence);
+        gl.uniform1f(shade.u.uTall, tall ? 1 : 0);
+        // The hole recedes and dissolves while the aurora rises to take its place.
+        gl.uniform1f(shade.u.uHole, smoothstep(0.08, 0.75, s.presence));
+        gl.uniform1f(shade.u.uAurora, (1 - smoothstep(0.25, 0.95, s.presence)) * s.aurora);
+        gl.uniform1f(shade.u.uShape, s.shape);
+        gl.uniform1f(shade.u.uAspect, canvas.width / canvas.height);
+        gl.uniform1f(shade.u.uRin, DISK.rin);
+        gl.uniform1f(shade.u.uRout, DISK.rout);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      };
+
+      // 1. The scene at quarter resolution, blurred twice: the glow of the gas.
+      gl.disable(gl.BLEND);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, bloomFb[0]);
+      gl.viewport(0, 0, bloomW, bloomH);
+      shadeTo(bloomW, bloomH);
+      gl.useProgram(blur.p);
+      gl.uniform1i(blur.u.uTex, 0);
+      gl.uniform2f(blur.u.uRes, bloomW, bloomH);
       gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, hit1Tex);
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, hit2Tex);
-      gl.activeTexture(gl.TEXTURE2);
-      gl.bindTexture(gl.TEXTURE_2D, infoTex);
-      gl.activeTexture(gl.TEXTURE3);
-      gl.bindTexture(gl.TEXTURE_2D, noiseTex);
-      gl.uniform1i(shade.u.uHit1, 0);
-      gl.uniform1i(shade.u.uHit2, 1);
-      gl.uniform1i(shade.u.uInfo, 2);
-      gl.uniform1i(shade.u.uNoise, 3);
-      gl.uniform2f(shade.u.uRes, canvas.width, canvas.height);
-      gl.uniform1f(shade.u.uTime, s.time);
-      gl.uniform1f(shade.u.uMirror, s.mirror);
-      gl.uniform1f(shade.u.uMargin, MARGIN);
-      gl.uniform2f(shade.u.uAnchor, anchor[0], anchor[1]);
-      // Receding: smaller and further away, drifting in toward the middle of the
-      // screen so a distant, dim hole stays in view, its filaments softening.
-      gl.uniform1f(shade.u.uZoom, 1 - 0.42 * k);
-      gl.uniform2f(shade.u.uDrift, 0.17 * k, 0.02 * k);
-      gl.uniform1f(shade.u.uDetail, 1 - 0.5 * k);
-      gl.uniform1f(shade.u.uIntensity, s.intensity);
-      gl.uniform1f(shade.u.uClearSide, s.presence);
-      gl.uniform1f(shade.u.uTall, tall ? 1 : 0);
-      gl.uniform1f(shade.u.uRin, DISK.rin);
-      gl.uniform1f(shade.u.uRout, DISK.rout);
+      for (const spread of [1, 2.2]) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, bloomFb[1]);
+        gl.bindTexture(gl.TEXTURE_2D, bloomTex[0]);
+        gl.uniform2f(blur.u.uStep, spread / bloomW, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, bloomFb[0]);
+        gl.bindTexture(gl.TEXTURE_2D, bloomTex[1]);
+        gl.uniform2f(blur.u.uStep, 0, spread / bloomH);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      }
+
+      // 2. The scene at full resolution.
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, canvas.width, canvas.height);
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      gl.bindVertexArray(vao);
+      shadeTo(canvas.width, canvas.height);
+
+      // 3. The glow laid over it, so the streams merge and bloom into the dark.
+      gl.blendFunc(gl.ONE, gl.ONE);
+      gl.useProgram(glow.p);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, bloomTex[0]);
+      gl.uniform1i(glow.u.uTex, 0);
+      gl.uniform2f(glow.u.uRes, canvas.width, canvas.height);
+      gl.uniform1f(glow.u.uStrength, 0.85 - 0.25 * k);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     },
     dispose() {
-      [hit1Tex, hit2Tex, infoTex, noiseTex].forEach((t) => t && gl.deleteTexture(t));
+      [hit1Tex, hit2Tex, infoTex, noiseTex, ...bloomTex].forEach((t) => t && gl.deleteTexture(t));
+      bloomFb.forEach((f) => f && gl.deleteFramebuffer(f));
       if (mapFb) gl.deleteFramebuffer(mapFb);
     },
   };

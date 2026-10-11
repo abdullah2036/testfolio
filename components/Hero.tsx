@@ -20,12 +20,6 @@ export default function Hero({ hero, arrows }: { hero: Content["hero"]; arrows: 
           </div>
         </div>
       </div>
-      <div className="hero__rail wide-only" aria-hidden="true" data-anim="rise" style={{ "--d": "1s" } as CSSProperties}>
-        <span className="hero__rail-line" />
-        {hero.rail.map((w) => (
-          <span key={w}>{w}</span>
-        ))}
-      </div>
     </section>
   );
 }

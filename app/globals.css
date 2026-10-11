@@ -1420,7 +1420,8 @@ main,
   position: relative;
   display: flex;
   gap: clamp(16px, 2.4vw, 28px);
-  padding: 12px calc(50vw - var(--card-w) / 2) 36px;
+  /* First card starts on the content's start edge, last card ends on its end edge. */
+  padding: 12px max(var(--pad-x), calc((100vw - var(--max)) / 2 + var(--pad-x))) 36px;
   will-change: transform;
 }
 /* Without the script the rail is simply swipeable. */

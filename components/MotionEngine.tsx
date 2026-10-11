@@ -63,6 +63,8 @@ export default function MotionEngine() {
     let hTop = 0;
     let hDist = 0;
     let hSpan = 1;
+    let hPad = 0;
+    let hCardW = 1;
     let hWidth = 1;
     let hShown = -1;
     // DOM order is bottom → top of the stack; data-plate is the step the plate stands for.
@@ -139,10 +141,18 @@ export default function MotionEngine() {
           c.w = c.el.offsetWidth || 1;
           c.c = c.el.offsetLeft + c.w / 2;
         });
-        hDist = Math.max(0, hTrack.scrollWidth - hWidth);
-        // A little more vertical scroll than horizontal travel, so each card has its moment.
-        hSpan = hDist * (wide ? 1.35 : 1.1);
-        const want = `${Math.round(hSpan + vh)}px`;
+        hPad = parseFloat(getComputedStyle(hTrack).paddingLeft) || 0;
+        // Travel from the cards themselves (scrollWidth drops a flex row's end padding):
+        // the whole run of cards plus padding on both sides, minus what fits on screen.
+        const lefts = hCards.map((c) => c.el.offsetLeft);
+        const run = Math.max(...lefts.map((l, i) => l + hCards[i].w)) - Math.min(...lefts);
+        hDist = Math.max(0, run + 2 * hPad - hWidth);
+        hCardW = hCards[0]?.w ?? 1;
+        // Travel is 1:1 with scroll (quick), then a short hold so the last card lands
+        // fully before the page moves on.
+        hSpan = hDist;
+        const hold = vh * 0.2;
+        const want = `${Math.round(hSpan + hold + vh)}px`;
         if (hrail.style.height !== want) hrail.style.height = want;
         hTop = absTop(hrail);
         hrail.dataset.ready = "";
@@ -216,11 +226,17 @@ export default function MotionEngine() {
       }
       // Projects rail: the cards travel across as you scroll, on a gentle arc.
       if (hTrack && hCards.length) {
-        const p = hSpan ? clamp((sy - hTop) / hSpan) : 0;
+        // Follows the real scroll position, not the smoothed one, so it never lags.
+        const p = hSpan ? clamp((window.scrollY - hTop) / hSpan) : 0;
         const x = -mirror * p * hDist;
         hTrack.style.transform = `translate3d(${x.toFixed(1)}px,0,0)`;
+        // The "current" spot slides from the start edge to the end edge with progress,
+        // so the first and last cards sit level at either end and the rest arc past.
+        const startC = mirror === 1 ? hPad + hCardW / 2 : hWidth - hPad - hCardW / 2;
+        const endC = mirror === 1 ? hWidth - hPad - hCardW / 2 : hPad + hCardW / 2;
+        const focus = lerp(startC, endC, p);
         hCards.forEach((c) => {
-          const t = (c.c + x - hWidth / 2) / c.w;
+          const t = (c.c + x - focus) / c.w;
           const a = Math.min(Math.abs(t), 2);
           if (!c.body) return;
           c.body.style.transform = reduced
@@ -253,10 +269,10 @@ export default function MotionEngine() {
     };
 
     /*
-     * The sky for a scroll position: one continuous recede, never a cut. Through the
-     * hero and About the black hole slowly loses presence (smaller, dimmer, softer)
-     * until only faint, slow-moving light is left behind the content; near Contact it
-     * dims a little further as that section's arc takes over.
+     * The sky for a scroll position: one continuous change, never a cut. Through the
+     * hero and About the black hole recedes and dissolves while a calm aurora in the
+     * same light rises in its place behind the content; near Contact it gives way to
+     * that section's arc.
      */
     const skyState = (sy: number, t: number): HoleState => {
       const C = m!.contact;
@@ -264,7 +280,9 @@ export default function MotionEngine() {
       const handOff = smooth(C.top - vh * 1.2, C.top - vh * 0.3, sy);
       return {
         presence,
-        intensity: lerp(0.42, 1, presence * presence) * (1 - 0.55 * handOff),
+        aurora: 0.42 * (1 - 0.7 * handOff),
+        shape: (sy / vh) * 0.4,
+        intensity: lerp(0.55, 1, presence) * (1 - 0.55 * handOff),
         mirror,
         time: t,
       };
