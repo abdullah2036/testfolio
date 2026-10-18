@@ -8,8 +8,8 @@ const en: Content = {
     title: "Abdullah Bokhary — Independent software developer",
     description:
       "Independent software developer and data science student. I build software that solves real problems, from the first conversation to production",
-    galleryTitle: "Gallery — Abdullah Bokhary",
-    galleryDescription: "Hackathons, events and the moments around the work",
+    galleryTitle: "Digital gallery — Abdullah Bokhary",
+    galleryDescription: "Hackathons and conferences I've attended",
   },
   arrows: { forward: "→", back: "←", external: "↗", up: "↑" },
   ui: {
@@ -28,7 +28,7 @@ const en: Content = {
     wordmark: "Abdullah Bokhary",
     about: "About",
     work: "Projects",
-    gallery: "Gallery",
+    gallery: "Events",
     certificates: "Certificates",
     contact: "Contact",
     cta: "Let's talk",
@@ -203,7 +203,7 @@ const en: Content = {
     eyebrow: "About",
     title: "Start with the problem,",
     accent: "ship the answer",
-    body: "I work as an independent developer while studying data science. Most of my clients found me through someone I'd already built for",
+    body: "I work as an independent developer while studying data science. Every project goes through the same three steps",
     steps: [
       {
         title: "Understand",
@@ -220,9 +220,9 @@ const en: Content = {
     ],
   },
   beyond: {
-    eyebrow: "Beyond the screen",
-    title: "The people and places",
-    accent: "around the work",
+    eyebrow: "Events",
+    title: "Digital",
+    accent: "gallery",
     body: "A water hackathon, LEAP, Black Hat MEA and the iCAN AI conference at King Saud University",
     cta: "Open the gallery",
     empty: "Photos from hackathons and events are on their way",
@@ -246,10 +246,10 @@ const en: Content = {
     backToTop: "Back to top",
   },
   gallery: {
-    eyebrow: "Gallery",
-    title: "Outside the",
-    accent: "code",
-    intro: "Hackathons, events and the moments around the work: the people and places behind the projects",
+    eyebrow: "Events",
+    title: "Digital",
+    accent: "gallery",
+    intro: "Hackathons and conferences I've attended: Miyahthon, LEAP, Black Hat MEA and iCAN at King Saud University",
     all: "All",
     empty: "The first photos are on their way",
     emptyFilter: "Nothing in this category yet",

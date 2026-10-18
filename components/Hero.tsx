@@ -101,7 +101,7 @@ export default function Hero({ c }: { c: Content }) {
             </div>
           ))}
         </div>
-        {/* A blurred top edge under the nav; the bottom simply fades into the page. */}
+        {/* A blurred top edge under the nav; the bottom eases out into the page. */}
         <span className="mosaic__blur mosaic__blur--top" aria-hidden="true" />
       </div>
     </section>

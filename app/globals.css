@@ -772,15 +772,15 @@ ol {
   inset-inline-end: 0;
   width: 45%;
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 40%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 40%), linear-gradient(to bottom, #000 74%, rgba(0, 0, 0, 0.7) 82%, rgba(0, 0, 0, 0.38) 89%, rgba(0, 0, 0, 0.14) 95%, transparent);
   -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to right, transparent, #000 40%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 40%), linear-gradient(to bottom, #000 74%, rgba(0, 0, 0, 0.7) 82%, rgba(0, 0, 0, 0.38) 89%, rgba(0, 0, 0, 0.14) 95%, transparent);
   mask-composite: intersect;
 }
 [dir="rtl"] .mosaic {
-  -webkit-mask-image: linear-gradient(to left, transparent, #000 40%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+  -webkit-mask-image: linear-gradient(to left, transparent, #000 40%), linear-gradient(to bottom, #000 74%, rgba(0, 0, 0, 0.7) 82%, rgba(0, 0, 0, 0.38) 89%, rgba(0, 0, 0, 0.14) 95%, transparent);
   -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to left, transparent, #000 40%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+  mask-image: linear-gradient(to left, transparent, #000 40%), linear-gradient(to bottom, #000 74%, rgba(0, 0, 0, 0.7) 82%, rgba(0, 0, 0, 0.38) 89%, rgba(0, 0, 0, 0.14) 95%, transparent);
   mask-composite: intersect;
 }
 .mosaic__tilt {
@@ -852,8 +852,9 @@ ol {
 }
 .mosaic__blur--top {
   top: 0;
-  -webkit-mask-image: linear-gradient(#000 20%, transparent);
-  mask-image: linear-gradient(#000 20%, transparent);
+  background: linear-gradient(var(--bg), rgba(11, 12, 14, 0));
+  -webkit-mask-image: linear-gradient(#000 30%, transparent);
+  mask-image: linear-gradient(#000 30%, transparent);
 }
 .tile {
   position: relative;
@@ -923,15 +924,15 @@ ol {
     width: 56%;
     /* Bleed to the edge of the window on wide screens. */
     inset-inline-end: min(0px, calc((var(--max) + 2 * var(--pad) - 100vw) / 2));
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 22%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 22%), linear-gradient(to bottom, #000 74%, rgba(0, 0, 0, 0.7) 82%, rgba(0, 0, 0, 0.38) 89%, rgba(0, 0, 0, 0.14) 95%, transparent);
     -webkit-mask-composite: source-in;
-    mask-image: linear-gradient(to right, transparent, #000 22%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 22%), linear-gradient(to bottom, #000 74%, rgba(0, 0, 0, 0.7) 82%, rgba(0, 0, 0, 0.38) 89%, rgba(0, 0, 0, 0.14) 95%, transparent);
     mask-composite: intersect;
   }
   [dir="rtl"] .mosaic {
-    -webkit-mask-image: linear-gradient(to left, transparent, #000 22%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+    -webkit-mask-image: linear-gradient(to left, transparent, #000 22%), linear-gradient(to bottom, #000 74%, rgba(0, 0, 0, 0.7) 82%, rgba(0, 0, 0, 0.38) 89%, rgba(0, 0, 0, 0.14) 95%, transparent);
     -webkit-mask-composite: source-in;
-    mask-image: linear-gradient(to left, transparent, #000 22%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+    mask-image: linear-gradient(to left, transparent, #000 22%), linear-gradient(to bottom, #000 74%, rgba(0, 0, 0, 0.7) 82%, rgba(0, 0, 0, 0.38) 89%, rgba(0, 0, 0, 0.14) 95%, transparent);
     mask-composite: intersect;
   }
   .mosaic__tilt {
