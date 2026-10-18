@@ -18,11 +18,12 @@ function tilesFor(c: Content) {
     label: kind === "cert" ? cert[id] : p[id],
     kind,
   });
-  // Three columns; each loops on its own, at its own pace.
+  // Four columns; each loops on its own, at its own pace. Phones show the first two.
   return [
     [t(SHOTS.scinvitesInvite, "scinvites"), t(SHOTS.ibm, "ibm", "cert"), t(SHOTS.maherOs, "maher-os"), t(SHOTS.eloria, "eloria")],
     [t(SHOTS.pairingBoard, "pairing-board"), t(SHOTS.ine, "ine", "cert"), t(SHOTS.scinvitesCard, "scinvites"), t(SHOTS.maherOsChooser, "maher-os")],
-    [t(SHOTS.eloria, "eloria"), t(SHOTS.scinvitesInvite, "scinvites"), t(SHOTS.ibm, "ibm", "cert"), t(SHOTS.pairingBoard, "pairing-board")],
+    [t(SHOTS.eloria, "eloria"), t(SHOTS.maherOs, "maher-os"), t(SHOTS.ibm, "ibm", "cert"), t(SHOTS.scinvitesInvite, "scinvites")],
+    [t(SHOTS.maherOsChooser, "maher-os"), t(SHOTS.scinvitesCard, "scinvites"), t(SHOTS.pairingBoard, "pairing-board"), t(SHOTS.ine, "ine", "cert")],
   ];
 }
 
@@ -41,7 +42,7 @@ function TileLink({ tile, copy, eager }: { tile: Tile; copy: boolean; eager: boo
         alt=""
         width={tile.img.width}
         height={tile.img.height}
-        sizes="(min-width: 960px) 200px, 45vw"
+        sizes="(min-width: 960px) 180px, 26vw"
         loading={eager ? "eager" : "lazy"}
         draggable={false}
       />
@@ -57,21 +58,24 @@ export default function Hero({ c }: { c: Content }) {
   const cols = tilesFor(c);
   return (
     <section id="top" className="hero" aria-labelledby="hero-title">
+      {/* The site's light: soft teal, blue and violet, drifting slowly behind the hero. */}
+      <div className="aura" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+
       <div className="hero__text">
-        <p className="status" {...reveal(0)}>
-          <span className="status__dot" aria-hidden="true" />
-          {hero.status}
-        </p>
-        <p className="eyebrow hero__eyebrow" {...reveal(1)}>
+        <p className="eyebrow hero__eyebrow" {...reveal(0)}>
           {hero.eyebrow}
         </p>
-        <h1 id="hero-title" className="hero__title" {...reveal(2)}>
-          {hero.title}
+        <h1 id="hero-title" className="hero__title" {...reveal(1)}>
+          {hero.title} <span className="accent">{hero.accent}</span>
         </h1>
-        <p className="hero__lede" {...reveal(3)}>
+        <p className="hero__lede" {...reveal(2)}>
           {hero.lede}
         </p>
-        <div className="hero__actions" {...reveal(4)}>
+        <div className="hero__actions" {...reveal(3)}>
           <Button href="#work" arrow={arrows.forward}>
             {hero.primary}
           </Button>
@@ -81,20 +85,25 @@ export default function Hero({ c }: { c: Content }) {
         </div>
       </div>
 
-      <div className="mosaic" role="group" aria-label={hero.mosaicLabel} data-mosaic {...reveal(2)}>
-        {cols.map((col, ci) => (
-          <div key={ci} className="mcol" style={{ "--speed": `${[62, 74, 68][ci]}s` } as CSSProperties}>
-            <div className="mcol__track">
-              {[false, true].map((copy) => (
-                <div key={String(copy)} className="mcol__group">
-                  {col.map((tile, i) => (
-                    <TileLink key={i} tile={tile} copy={copy} eager={!copy && i < 2} />
-                  ))}
-                </div>
-              ))}
+      <div className="mosaic" role="group" aria-label={hero.mosaicLabel} data-mosaic {...reveal(1)}>
+        <div className="mosaic__tilt">
+          {cols.map((col, ci) => (
+            <div key={ci} className="mcol" style={{ "--speed": `${[70, 84, 76, 90][ci]}s` } as CSSProperties}>
+              <div className="mcol__track">
+                {[false, true].map((copy) => (
+                  <div key={String(copy)} className="mcol__group">
+                    {col.map((tile, i) => (
+                      <TileLink key={i} tile={tile} copy={copy} eager={!copy && i < 2 && ci < 2} />
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        {/* Soft, blurred edges top and bottom, so the loop never shows a hard cut. */}
+        <span className="mosaic__blur mosaic__blur--top" aria-hidden="true" />
+        <span className="mosaic__blur mosaic__blur--bottom" aria-hidden="true" />
       </div>
     </section>
   );

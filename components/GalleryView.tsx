@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import type { Content, GalleryCategory, Locale } from "@/content/types";
-import { CATEGORIES, formatDate, imageSrc, type GalleryItem } from "@/lib/gallery";
+import type { Content, Locale } from "@/content/types";
+import { imageSrc, metaLine, type GalleryEvent, type GalleryItem } from "@/lib/gallery";
 import { localeHref } from "@/lib/paths";
 
-type Filter = GalleryCategory | "all";
+type Filter = string;
 type Props = {
   items: GalleryItem[];
+  events: GalleryEvent[];
   g: Content["gallery"];
   arrows: Content["arrows"];
   projects: Record<string, string>;
@@ -22,37 +23,39 @@ const withViewTransition = (fn: () => void) => {
   else fn();
 };
 
-export default function GalleryView({ items, g, arrows, projects, locale, rtl }: Props) {
+export default function GalleryView({ items, events, g, arrows, projects, locale, rtl }: Props) {
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<number | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const tiles = useRef<(HTMLButtonElement | null)[]>([]);
   const swipe = useRef<{ x: number; y: number } | null>(null);
 
+  // One filter per event that has photos, in the events' order.
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: items.length };
-    for (const k of CATEGORIES) c[k] = items.filter((i) => i.category === k).length;
+    for (const e of events) c[e.id] = items.filter((i) => i.event === e.id).length;
     return c;
-  }, [items]);
-  const shown = useMemo(() => (filter === "all" ? items : items.filter((i) => i.category === filter)), [items, filter]);
-  const leadId = filter === "all" ? (items.find((i) => i.featured) ?? items[0])?.id : undefined;
-  // The featured photo always opens the collage.
+  }, [items, events]);
+  const filters = useMemo(() => events.filter((e) => counts[e.id] > 0), [events, counts]);
+  const shown = useMemo(() => (filter === "all" ? items : items.filter((i) => i.event === filter)), [items, filter]);
+  const leadId = (shown.find((i) => i.featured) ?? shown[0])?.id;
+  // The featured photo (or the event's first) opens the collage.
   const ordered = useMemo(() => {
     if (!leadId) return shown;
     const lead = shown.find((i) => i.id === leadId)!;
     return [lead, ...shown.filter((i) => i.id !== leadId)];
   }, [shown, leadId]);
 
-  // A filter in the URL (#events) opens the page on that category.
+  // An event in the URL (#leap) opens the page on that event.
   useEffect(() => {
     const fromHash = () => {
-      const h = decodeURIComponent(window.location.hash.slice(1)) as Filter;
-      setFilter(CATEGORIES.includes(h as GalleryCategory) ? h : "all");
+      const h = decodeURIComponent(window.location.hash.slice(1));
+      setFilter(events.some((e) => e.id === h) ? h : "all");
     };
     fromHash();
     window.addEventListener("hashchange", fromHash);
     return () => window.removeEventListener("hashchange", fromHash);
-  }, []);
+  }, [events]);
 
   const choose = (f: Filter) => {
     if (f === filter) return;
@@ -102,16 +105,10 @@ export default function GalleryView({ items, g, arrows, projects, locale, rtl }:
   return (
     <>
       <div className="gfilters" role="toolbar" aria-label={g.eyebrow}>
-        {(["all", ...CATEGORIES] as Filter[]).map((f) => (
-          <button
-            key={f}
-            type="button"
-            className="gfilter"
-            aria-pressed={filter === f}
-            onClick={() => choose(f)}
-          >
-            {f === "all" ? g.all : g.categories[f]}
-            <span className="gfilter__n">{counts[f].toLocaleString(locale === "ar" ? "ar-SA" : "en")}</span>
+        {[{ id: "all", label: g.all }, ...filters.map((e) => ({ id: e.id, label: e.short[locale] }))].map((f) => (
+          <button key={f.id} type="button" className="gfilter" aria-pressed={filter === f.id} onClick={() => choose(f.id)}>
+            {f.label}
+            <span className="gfilter__n">{counts[f.id].toLocaleString(locale === "ar" ? "ar-SA" : "en")}</span>
           </button>
         ))}
       </div>
@@ -160,10 +157,7 @@ export default function GalleryView({ items, g, arrows, projects, locale, rtl }:
                 <span className="glead__num" aria-hidden="true">
                   01
                 </span>
-                <span className="gitem__meta">
-                  {g.categories[lead.category]} · {formatDate(lead.date, locale)}
-                  {lead.location && ` · ${lead.location[locale]}`}
-                </span>
+                <span className="gitem__meta">{metaLine(lead, locale, events)}</span>
                 <span className="glead__title">{lead.caption[locale]}</span>
                 {lead.project && projects[lead.project] && (
                   <a className="text-link" href={`${homeProjects}#p-${lead.project}`}>
@@ -202,9 +196,7 @@ export default function GalleryView({ items, g, arrows, projects, locale, rtl }:
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <span className="gitem__cap" aria-hidden="true">
-                      <span className="gitem__meta">
-                        {g.categories[item.category]} · {formatDate(item.date, locale)}
-                      </span>
+                      <span className="gitem__meta">{metaLine(item, locale, events)}</span>
                       <span className="gitem__title">{item.caption[locale]}</span>
                     </span>
                   </button>
@@ -250,9 +242,7 @@ export default function GalleryView({ items, g, arrows, projects, locale, rtl }:
                     {(open! + 1).toLocaleString(locale === "ar" ? "ar-SA" : "en")} {g.viewer.of}{" "}
                     {ordered.length.toLocaleString(locale === "ar" ? "ar-SA" : "en")}
                   </span>
-                  <span>{g.categories[current.category]}</span>
-                  <span>{formatDate(current.date, locale)}</span>
-                  {current.location && <span>{current.location[locale]}</span>}
+                  <span>{metaLine(current, locale, events)}</span>
                 </span>
                 <span className="viewer__title">{current.caption[locale]}</span>
                 {current.project && projects[current.project] && (

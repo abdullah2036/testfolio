@@ -1,3 +1,315 @@
 {
-  "items": []
+  "events": [
+    {
+      "id": "miyahthon",
+      "name": {
+        "en": "Miyahthon Water Hackathon",
+        "ar": "هاكاثون مياهثون"
+      },
+      "short": {
+        "en": "Miyahthon",
+        "ar": "مياهثون"
+      }
+    },
+    {
+      "id": "leap",
+      "name": {
+        "en": "LEAP",
+        "ar": "مؤتمر ليب"
+      },
+      "short": {
+        "en": "LEAP",
+        "ar": "ليب"
+      }
+    },
+    {
+      "id": "black-hat",
+      "name": {
+        "en": "Black Hat MEA",
+        "ar": "بلاك هات الشرق الأوسط"
+      },
+      "short": {
+        "en": "Black Hat",
+        "ar": "بلاك هات"
+      }
+    },
+    {
+      "id": "ksu-ican",
+      "name": {
+        "en": "iCAN AI Conference, King Saud University",
+        "ar": "مؤتمر iCAN للذكاء الاصطناعي، جامعة الملك سعود"
+      },
+      "short": {
+        "en": "KSU iCAN",
+        "ar": "iCAN"
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": "miyahthon-01",
+      "src": "/gallery/miyahthon-01.webp",
+      "width": 1154,
+      "height": 1280,
+      "caption": {
+        "en": "The participant kit: badge, lanyard, stickers and a tumbler with my name on it",
+        "ar": "حقيبة المشارك: البطاقة والحبل والملصقات، وكوب يحمل اسمي"
+      },
+      "event": "miyahthon",
+      "featured": true
+    },
+    {
+      "id": "miyahthon-02",
+      "src": "/gallery/miyahthon-02.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "My participant badge",
+        "ar": "بطاقة المشارك باسمي"
+      },
+      "event": "miyahthon"
+    },
+    {
+      "id": "miyahthon-03",
+      "src": "/gallery/miyahthon-03.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "The Miyahthon lobby",
+        "ar": "ردهة مياهثون"
+      },
+      "event": "miyahthon"
+    },
+    {
+      "id": "miyahthon-04",
+      "src": "/gallery/miyahthon-04.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "The venue from above",
+        "ar": "المقر من الأعلى"
+      },
+      "event": "miyahthon"
+    },
+    {
+      "id": "miyahthon-05",
+      "src": "/gallery/miyahthon-05.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "My name on the hackathon tumbler",
+        "ar": "اسمي على كوب الهاكاثون"
+      },
+      "event": "miyahthon"
+    },
+    {
+      "id": "miyahthon-06",
+      "src": "/gallery/miyahthon-06.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "The atrium, with the Miyahthon sign and tables below",
+        "ar": "الساحة، وشعار مياهثون والطاولات في الأسفل"
+      },
+      "event": "miyahthon"
+    },
+    {
+      "id": "miyahthon-07",
+      "src": "/gallery/miyahthon-07.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "Participant badge and notebook",
+        "ar": "بطاقة المشارك ودفتر الملاحظات"
+      },
+      "event": "miyahthon"
+    },
+    {
+      "id": "leap-01",
+      "src": "/gallery/leap-01.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "The LEAP main registration entrance",
+        "ar": "المدخل الرئيسي للتسجيل في ليب"
+      },
+      "event": "leap"
+    },
+    {
+      "id": "leap-02",
+      "src": "/gallery/leap-02.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "The LEAP letters on the show floor",
+        "ar": "حروف ليب في ساحة المعرض"
+      },
+      "event": "leap"
+    },
+    {
+      "id": "leap-03",
+      "src": "/gallery/leap-03.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "The Zain stand",
+        "ar": "جناح زين"
+      },
+      "event": "leap"
+    },
+    {
+      "id": "leap-04",
+      "src": "/gallery/leap-04.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "Crowds between the halls",
+        "ar": "زحام بين القاعات"
+      },
+      "event": "leap"
+    },
+    {
+      "id": "leap-05",
+      "src": "/gallery/leap-05.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "A tunnel of light at one of the stands",
+        "ar": "نفق من الضوء في أحد الأجنحة"
+      },
+      "event": "leap"
+    },
+    {
+      "id": "leap-06",
+      "src": "/gallery/leap-06.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "The HUMAIN stage",
+        "ar": "منصة HUMAIN"
+      },
+      "event": "leap"
+    },
+    {
+      "id": "black-hat-01",
+      "src": "/gallery/black-hat-01.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "The #BlackHatMEA sign",
+        "ar": "لافتة ‎#BlackHatMEA"
+      },
+      "event": "black-hat"
+    },
+    {
+      "id": "black-hat-02",
+      "src": "/gallery/black-hat-02.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "My student badge",
+        "ar": "بطاقتي كطالب"
+      },
+      "event": "black-hat"
+    },
+    {
+      "id": "black-hat-03",
+      "src": "/gallery/black-hat-03.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "The exhibition hall",
+        "ar": "قاعة المعرض"
+      },
+      "event": "black-hat"
+    },
+    {
+      "id": "black-hat-04",
+      "src": "/gallery/black-hat-04.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "INE Security, the people behind my eCPPT",
+        "ar": "INE Security، الجهة المانحة لشهادة eCPPT"
+      },
+      "event": "black-hat"
+    },
+    {
+      "id": "black-hat-05",
+      "src": "/gallery/black-hat-05.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "An OffSec card",
+        "ar": "بطاقة من OffSec"
+      },
+      "event": "black-hat"
+    },
+    {
+      "id": "black-hat-06",
+      "src": "/gallery/black-hat-06.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "Everything I brought home: stickers, brochures and badges",
+        "ar": "كل ما عدت به: ملصقات وكتيّبات وبطاقات"
+      },
+      "event": "black-hat"
+    },
+    {
+      "id": "ksu-ican-01",
+      "src": "/gallery/ksu-ican-01.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "The iCAN main stage",
+        "ar": "المسرح الرئيسي لمؤتمر iCAN"
+      },
+      "event": "ksu-ican"
+    },
+    {
+      "id": "ksu-ican-02",
+      "src": "/gallery/ksu-ican-02.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "King Saud University, at the conference entrance",
+        "ar": "جامعة الملك سعود، عند مدخل المؤتمر"
+      },
+      "event": "ksu-ican"
+    },
+    {
+      "id": "ksu-ican-03",
+      "src": "/gallery/ksu-ican-03.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "The iCAN exhibition from above",
+        "ar": "معرض iCAN من الأعلى"
+      },
+      "event": "ksu-ican"
+    },
+    {
+      "id": "ksu-ican-04",
+      "src": "/gallery/ksu-ican-04.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "A session in the main hall",
+        "ar": "جلسة في القاعة الرئيسية"
+      },
+      "event": "ksu-ican"
+    },
+    {
+      "id": "ksu-ican-05",
+      "src": "/gallery/ksu-ican-05.webp",
+      "width": 720,
+      "height": 1280,
+      "caption": {
+        "en": "A model of the King Saud University campus",
+        "ar": "مجسّم لحرم جامعة الملك سعود"
+      },
+      "event": "ksu-ican"
+    }
+  ]
 }

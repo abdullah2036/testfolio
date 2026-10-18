@@ -40,8 +40,6 @@ export type Certificate = {
   list?: { label: string; items: string[]; ltr?: boolean };
 };
 
-export type GalleryCategory = "hackathons" | "events" | "projects" | "behind-the-scenes";
-
 export type Section = { eyebrow: string; title: string; body?: string };
 
 export type Content = {
@@ -78,11 +76,12 @@ export type Content = {
   };
   hero: {
     eyebrow: string;
+    /** The headline, then the words that carry the accent gradient. */
     title: string;
+    accent: string;
     lede: string;
     primary: string;
     secondary: string;
-    status: string;
     mosaicLabel: string;
   };
   tape: { label: string };
@@ -108,7 +107,6 @@ export type Content = {
     title: string;
     intro: string;
     all: string;
-    categories: Record<GalleryCategory, string>;
     empty: string;
     emptyFilter: string;
     relatedProject: string;

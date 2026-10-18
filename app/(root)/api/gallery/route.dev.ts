@@ -2,21 +2,20 @@
  * The gallery studio's API. This file only exists under `next dev` (see pageExtensions
  * in next.config.ts), so production builds have no way to change the gallery.
  *
- *   GET  → the current gallery.json
+ *   GET  → the current gallery.json ({ events, items })
  *   POST → upload photos (multipart "files"); each is rotated upright, resized to at most
  *          2400 px and saved as WebP in public/gallery/
- *   PUT  → save the whole list; photos no longer used are moved to .gallery-trash/
+ *   PUT  → save events and photos; photos no longer used are moved to .gallery-trash/
  */
 import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import type { GalleryItem } from "@/lib/gallery";
+import type { GalleryData, GalleryEvent, GalleryItem } from "@/lib/gallery";
 
 const ROOT = process.cwd();
 const JSON_PATH = path.join(ROOT, "content", "gallery.json");
 const PHOTO_DIR = path.join(ROOT, "public", "gallery");
 const TRASH_DIR = path.join(ROOT, ".gallery-trash");
-const CATEGORIES = ["hackathons", "events", "projects", "behind-the-scenes"];
 
 /** Only answer requests made from this computer. */
 function local(request: Request) {
@@ -34,14 +33,14 @@ const slug = (name: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 40) || "photo";
 
-async function readItems(): Promise<GalleryItem[]> {
-  const raw = await readFile(JSON_PATH, "utf8");
-  return (JSON.parse(raw) as { items: GalleryItem[] }).items ?? [];
+async function readData(): Promise<GalleryData> {
+  const raw = JSON.parse(await readFile(JSON_PATH, "utf8")) as Partial<GalleryData>;
+  return { events: raw.events ?? [], items: raw.items ?? [] };
 }
 
 export async function GET(request: Request) {
   if (!local(request)) return forbidden();
-  return Response.json({ items: await readItems() });
+  return Response.json(await readData());
 }
 
 export async function POST(request: Request) {
@@ -62,14 +61,7 @@ export async function POST(request: Request) {
         .toBuffer({ resolveWithObject: true });
       const id = `${slug(file.name)}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
       await writeFile(path.join(PHOTO_DIR, `${id}.webp`), data);
-      saved.push({
-        id,
-        src: `/gallery/${id}.webp`,
-        width: info.width,
-        height: info.height,
-        name: file.name,
-        lastModified: file.lastModified,
-      });
+      saved.push({ id, src: `/gallery/${id}.webp`, width: info.width, height: info.height, name: file.name });
     } catch {
       const heic = /\.hei[cf]$/i.test(file.name);
       saved.push({
@@ -83,20 +75,21 @@ export async function POST(request: Request) {
   return Response.json({ saved });
 }
 
-function valid(item: GalleryItem) {
-  return (
-    typeof item.id === "string" &&
-    /^[a-z0-9-]+$/.test(item.id) &&
-    typeof item.src === "string" &&
-    item.src.startsWith("/gallery/") &&
-    Number.isFinite(item.width) &&
-    Number.isFinite(item.height) &&
-    CATEGORIES.includes(item.category) &&
-    typeof item.caption?.en === "string" &&
-    typeof item.caption?.ar === "string" &&
-    /^\d{4}-\d{2}-\d{2}$/.test(item.date)
-  );
-}
+const isText = (t: unknown): t is { en: string; ar: string } =>
+  !!t && typeof (t as { en: unknown }).en === "string" && typeof (t as { ar: unknown }).ar === "string";
+
+const validEvent = (e: GalleryEvent) => typeof e.id === "string" && /^[a-z0-9-]+$/.test(e.id) && isText(e.name) && isText(e.short);
+
+const validItem = (item: GalleryItem, events: Set<string>) =>
+  typeof item.id === "string" &&
+  /^[a-z0-9-]+$/.test(item.id) &&
+  typeof item.src === "string" &&
+  item.src.startsWith("/gallery/") &&
+  Number.isFinite(item.width) &&
+  Number.isFinite(item.height) &&
+  events.has(item.event) &&
+  isText(item.caption) &&
+  (!item.date || /^\d{4}-\d{2}-\d{2}$/.test(item.date));
 
 /** Keep only known fields, drop empty optional ones. */
 function clean(item: GalleryItem): GalleryItem {
@@ -106,9 +99,9 @@ function clean(item: GalleryItem): GalleryItem {
     width: Math.round(item.width),
     height: Math.round(item.height),
     caption: { en: item.caption.en.trim(), ar: item.caption.ar.trim() },
-    category: item.category,
-    date: item.date,
+    event: item.event,
   };
+  if (item.date) out.date = item.date;
   if (item.location && (item.location.en.trim() || item.location.ar.trim()))
     out.location = { en: item.location.en.trim(), ar: item.location.ar.trim() };
   if (item.featured) out.featured = true;
@@ -118,13 +111,22 @@ function clean(item: GalleryItem): GalleryItem {
 
 export async function PUT(request: Request) {
   if (!local(request)) return forbidden();
-  const body = (await request.json()) as { items?: GalleryItem[] };
-  if (!Array.isArray(body.items)) return Response.json({ error: "Expected { items: [...] }." }, { status: 400 });
-  const bad = body.items.filter((i) => !valid(i));
-  if (bad.length) return Response.json({ error: `${bad.length} photo(s) have missing or invalid fields.` }, { status: 400 });
+  const body = (await request.json()) as Partial<GalleryData>;
+  if (!Array.isArray(body.items) || !Array.isArray(body.events))
+    return Response.json({ error: "Expected { events: [...], items: [...] }." }, { status: 400 });
+  if (!body.events.every(validEvent))
+    return Response.json({ error: "Every event needs a short id and a name in both languages." }, { status: 400 });
+  const ids = new Set(body.events.map((e) => e.id));
+  const bad = body.items.filter((i) => !validItem(i, ids)).length;
+  if (bad) return Response.json({ error: `${bad} photo(s) have missing or invalid fields.` }, { status: 400 });
 
+  const events = body.events.map((e) => ({
+    id: e.id,
+    name: { en: e.name.en.trim(), ar: e.name.ar.trim() },
+    short: { en: e.short.en.trim() || e.name.en.trim(), ar: e.short.ar.trim() || e.name.ar.trim() },
+  }));
   const items = body.items.map(clean);
-  await writeFile(JSON_PATH, `${JSON.stringify({ items }, null, 2)}\n`, "utf8");
+  await writeFile(JSON_PATH, `${JSON.stringify({ events, items }, null, 2)}\n`, "utf8");
 
   // Photos nobody uses any more go to .gallery-trash/ (git-ignored), not straight to deletion.
   const used = new Set(items.map((i) => path.basename(i.src)));

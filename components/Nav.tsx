@@ -62,7 +62,17 @@ export default function Nav({ nav, locale, page }: { nav: Content["nav"]; locale
     <header className="nav" data-nav data-open={open || undefined}>
       <div className="nav__inner">
         <a href={page === "home" ? "#top" : home} className="wordmark" onClick={close}>
-          <span className="wordmark__mark" aria-hidden="true" />
+          <svg className="wordmark__mark" viewBox="0 0 64 64" aria-hidden="true">
+            <defs>
+              <linearGradient id="logo-grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#34e6be" />
+                <stop offset=".5" stopColor="#40b4f0" />
+                <stop offset="1" stopColor="#a07bff" />
+              </linearGradient>
+            </defs>
+            <path d="M18 48 L32 14 L46 48" fill="none" stroke="url(#logo-grad)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M24 37 H40" fill="none" stroke="url(#logo-grad)" strokeWidth="5" strokeLinecap="round" />
+          </svg>
           {nav.wordmark}
         </a>
         <nav className="nav__links" aria-label={nav.menuLabel}>

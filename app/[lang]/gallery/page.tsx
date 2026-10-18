@@ -7,7 +7,7 @@ import Motion from "@/components/Motion";
 import Nav from "@/components/Nav";
 import { Button, reveal } from "@/components/primitives";
 import { getContent, hasLocale } from "@/content";
-import { galleryItems } from "@/lib/gallery";
+import { galleryEvents, galleryItems } from "@/lib/gallery";
 import { localeHref } from "@/lib/paths";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
@@ -54,7 +54,7 @@ export default async function GalleryPage({ params }: PageProps<"/[lang]/gallery
           </p>
         </header>
 
-        <GalleryView items={galleryItems} g={g} arrows={c.arrows} projects={projects} locale={lang} rtl={c.dir === "rtl"} />
+        <GalleryView items={galleryItems} events={galleryEvents} g={g} arrows={c.arrows} projects={projects} locale={lang} rtl={c.dir === "rtl"} />
 
         <div className="gallery__foot">
           <Button href={`${localeHref(lang)}#work`} arrow={c.arrows.forward}>

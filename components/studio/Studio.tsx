@@ -1,32 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
-import type { GalleryCategory } from "@/content/types";
-import { CATEGORIES, type GalleryItem } from "@/lib/gallery";
+import type { GalleryEvent, GalleryItem } from "@/lib/gallery";
 import { withBase } from "@/lib/paths";
 
 /*
- * Gallery studio: drop photos in, write captions in both languages, pick a category and
- * date, reorder, choose the featured photo, then Save. Saving writes content/gallery.json
+ * Gallery studio: drop photos in, write captions in both languages, pick the event (and
+ * optionally a date and place), reorder, choose the featured photo, then Save. Saving writes content/gallery.json
  * and the photos in public/gallery/, ready to commit and deploy.
  */
 
-const LABELS: Record<GalleryCategory, string> = {
-  hackathons: "Hackathons",
-  events: "Events",
-  projects: "Projects",
-  "behind-the-scenes": "Behind the scenes",
-};
+type Filter = string;
+type Uploaded = { id: string; src: string; width: number; height: number; name: string };
 
-type Filter = GalleryCategory | "all";
-type Uploaded = { id: string; src: string; width: number; height: number; name: string; lastModified: number };
-
-const today = () => new Date().toISOString().slice(0, 10);
-const isoDate = (ms: number) => (Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString().slice(0, 10) : today());
+const slug = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 30);
 
 export default function Studio({ projects }: { projects: { id: string; title: string }[] }) {
   const [items, setItems] = useState<GalleryItem[]>([]);
-  const [saved, setSaved] = useState("[]");
+  const [events, setEvents] = useState<GalleryEvent[]>([]);
+  const [saved, setSaved] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [status, setStatus] = useState<{ kind: "idle" | "busy" | "ok" | "error"; text: string }>({ kind: "idle", text: "" });
   const [dragging, setDragging] = useState(false);
@@ -34,14 +31,17 @@ export default function Studio({ projects }: { projects: { id: string; title: st
   const [loaded, setLoaded] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const dirty = loaded && JSON.stringify(items) !== saved;
+  const snapshot = JSON.stringify({ events, items });
+  const dirty = loaded && snapshot !== saved;
+  const eventName = (id: string) => events.find((e) => e.id === id)?.name.en ?? id;
 
   useEffect(() => {
     fetch("/api/gallery/")
       .then((r) => r.json())
-      .then((d: { items: GalleryItem[] }) => {
+      .then((d: { events: GalleryEvent[]; items: GalleryItem[] }) => {
         setItems(d.items);
-        setSaved(JSON.stringify(d.items));
+        setEvents(d.events);
+        setSaved(JSON.stringify({ events: d.events, items: d.items }));
         setLoaded(true);
       })
       .catch(() => setStatus({ kind: "error", text: "Couldn't load the gallery. Is `npm run dev` running?" }));
@@ -79,8 +79,7 @@ export default function Studio({ projects }: { projects: { id: string; title: st
                 width: s.width,
                 height: s.height,
                 caption: { en: "", ar: "" },
-                category: filter === "all" ? "events" : filter,
-                date: isoDate(s.lastModified),
+                event: filter === "all" ? (events[0]?.id ?? "") : filter,
               });
           }
         } catch (e) {
@@ -95,7 +94,7 @@ export default function Studio({ projects }: { projects: { id: string; title: st
           : { kind: "ok", text: `Added ${added.length} photo${added.length === 1 ? "" : "s"}. Write the captions, then Save.` },
       );
     },
-    [filter],
+    [filter, events],
   );
 
   const save = async () => {
@@ -105,11 +104,11 @@ export default function Studio({ projects }: { projects: { id: string; title: st
       const res = await fetch("/api/gallery/", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({ events, items }),
       });
       const data = (await res.json()) as { error?: string; count?: number; moved?: number };
       if (!res.ok) throw new Error(data.error ?? "Save failed");
-      setSaved(JSON.stringify(items));
+      setSaved(snapshot);
       setStatus({
         kind: "ok",
         text:
@@ -156,7 +155,29 @@ export default function Studio({ projects }: { projects: { id: string; title: st
     setDragId(null);
   };
 
-  const shown = useMemo(() => (filter === "all" ? items : items.filter((i) => i.category === filter)), [items, filter]);
+  const shown = useMemo(() => (filter === "all" ? items : items.filter((i) => i.event === filter)), [items, filter]);
+
+  const updateEvent = (id: string, patch: Partial<GalleryEvent>) => setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  const addEvent = () => {
+    const en = window.prompt("Event name in English (e.g. Black Hat MEA)")?.trim();
+    if (!en) return;
+    let id = slug(en) || "event";
+    while (events.some((e) => e.id === id)) id += "-2";
+    setEvents((prev) => [...prev, { id, name: { en, ar: "" }, short: { en, ar: "" } }]);
+  };
+  const moveEvent = (id: string, d: number) =>
+    setEvents((prev) => {
+      const from = prev.findIndex((e) => e.id === id);
+      const to = Math.max(0, Math.min(prev.length - 1, from + d));
+      const next = [...prev];
+      const [e] = next.splice(from, 1);
+      next.splice(to, 0, e);
+      return next;
+    });
+  const removeEvent = (id: string) => {
+    if (items.some((i) => i.event === id)) return window.alert("Move or remove this event's photos first.");
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+  };
 
   // Files dropped anywhere on the page.
   const onDrop = (e: DragEvent) => {
@@ -220,18 +241,58 @@ export default function Studio({ projects }: { projects: { id: string; title: st
         }}
       />
 
+      <details className="studio__events">
+        <summary>Events ({events.length}): the gallery&apos;s filters, in this order</summary>
+        <ol>
+          {events.map((ev, k) => (
+            <li key={ev.id} className="sevent">
+              <code>{ev.id}</code>
+              <label>
+                Name (English)
+                <input value={ev.name.en} onChange={(e) => updateEvent(ev.id, { name: { ...ev.name, en: e.target.value } })} />
+              </label>
+              <label>
+                Name (العربية)
+                <input dir="rtl" lang="ar" value={ev.name.ar} onChange={(e) => updateEvent(ev.id, { name: { ...ev.name, ar: e.target.value } })} />
+              </label>
+              <label>
+                Filter label (English)
+                <input value={ev.short.en} onChange={(e) => updateEvent(ev.id, { short: { ...ev.short, en: e.target.value } })} />
+              </label>
+              <label>
+                Filter label (العربية)
+                <input dir="rtl" lang="ar" value={ev.short.ar} onChange={(e) => updateEvent(ev.id, { short: { ...ev.short, ar: e.target.value } })} />
+              </label>
+              <div className="scard__tools">
+                <button type="button" onClick={() => moveEvent(ev.id, -1)} disabled={k === 0} aria-label="Move earlier">
+                  ↑
+                </button>
+                <button type="button" onClick={() => moveEvent(ev.id, 1)} disabled={k === events.length - 1} aria-label="Move later">
+                  ↓
+                </button>
+                <button type="button" className="scard__remove" onClick={() => removeEvent(ev.id)}>
+                  Remove
+                </button>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <button type="button" className="studio__add" onClick={addEvent}>
+          + Add an event
+        </button>
+      </details>
+
       <nav className="studio__filters" aria-label="Filter">
-        {(["all", ...CATEGORIES] as Filter[]).map((f) => (
+        {["all", ...events.map((e) => e.id)].map((f) => (
           <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>
-            {f === "all" ? "All" : LABELS[f]}{" "}
-            <span>{f === "all" ? items.length : items.filter((i) => i.category === f).length}</span>
+            {f === "all" ? "All" : eventName(f)} <span>{f === "all" ? items.length : items.filter((i) => i.event === f).length}</span>
           </button>
         ))}
       </nav>
 
       {loaded && shown.length === 0 && (
         <p className="studio__empty">
-          {items.length === 0 ? "No photos yet. Drop some in to start." : "No photos in this category."}
+          {items.length === 0 ? "No photos yet. Drop some in to start." : "No photos for this event yet."}
         </p>
       )}
 
@@ -275,18 +336,18 @@ export default function Studio({ projects }: { projects: { id: string; title: st
                 </label>
                 <div className="scard__row">
                   <label>
-                    Category
-                    <select value={item.category} onChange={(e) => update(item.id, { category: e.target.value as GalleryCategory })}>
-                      {CATEGORIES.map((c) => (
-                        <option key={c} value={c}>
-                          {LABELS[c]}
+                    Event
+                    <select value={item.event} onChange={(e) => update(item.id, { event: e.target.value })}>
+                      {events.map((ev) => (
+                        <option key={ev.id} value={ev.id}>
+                          {ev.name.en}
                         </option>
                       ))}
                     </select>
                   </label>
                   <label>
-                    Date
-                    <input type="date" value={item.date} onChange={(e) => update(item.id, { date: e.target.value || today() })} />
+                    Date (optional)
+                    <input type="date" value={item.date ?? ""} onChange={(e) => update(item.id, { date: e.target.value || undefined })} />
                   </label>
                 </div>
                 <div className="scard__row">

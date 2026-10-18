@@ -1,15 +1,18 @@
 import Image from "next/image";
 import type { Content, Locale } from "@/content/types";
-import { featuredItem, formatDate, galleryItems, imageSrc } from "@/lib/gallery";
+import { featuredItem, galleryItems, imageSrc, metaLine } from "@/lib/gallery";
 import { galleryHref } from "@/lib/paths";
 import { Button, SectionHead, reveal } from "./primitives";
 
 /** "Beyond the screen": the gallery's featured photograph, a couple of others, and the way in. */
 export default function Beyond({ c }: { c: Content }) {
-  const { beyond, arrows, gallery } = c;
+  const { beyond, arrows } = c;
   const locale = c.locale as Locale;
   const lead = featuredItem();
-  const others = galleryItems.filter((i) => i !== lead).slice(0, 2);
+  // Then the first photo of two other events, so the preview shows the range.
+  const others = galleryItems
+    .filter((i, k, all) => i.event !== lead?.event && all.findIndex((j) => j.event === i.event) === k)
+    .slice(0, 2);
   const href = galleryHref(locale);
 
   return (
@@ -25,7 +28,7 @@ export default function Beyond({ c }: { c: Content }) {
       {lead ? (
         <div className={`beyond__grid beyond__grid--${others.length}`}>
           {[lead, ...others].map((item, i) => (
-            <a key={item.id} href={href} className={`photo ${i === 0 ? "photo--lead" : ""}`} {...reveal(i)}>
+            <a key={item.id} href={`${href}#${item.event}`} className={`photo ${i === 0 ? "photo--lead" : ""}`} {...reveal(i)}>
               <Image
                 src={imageSrc(item)}
                 alt={item.caption[locale]}
@@ -34,9 +37,7 @@ export default function Beyond({ c }: { c: Content }) {
                 sizes={i === 0 ? "(min-width: 960px) 760px, 100vw" : "(min-width: 960px) 380px, 50vw"}
               />
               <span className="photo__cap">
-                <span className="photo__meta">
-                  {gallery.categories[item.category]} · {formatDate(item.date, locale)}
-                </span>
+                <span className="photo__meta">{metaLine(item, locale)}</span>
                 <span className="photo__title">{item.caption[locale]}</span>
               </span>
             </a>
