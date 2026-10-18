@@ -2591,58 +2591,6 @@ html:not(.anim-ready) .step__line {
     font-size: 11px;
   }
 
-  /* Supporting projects: the phone screenshot beside the text. */
-  .tl:not(.tl--featured) .pcard {
-    grid-template-columns: 32% minmax(0, 1fr);
-    align-items: start;
-  }
-  .tl:not(.tl--featured) .pmedia {
-    aspect-ratio: auto;
-    height: 100%;
-    padding: 10px;
-    border-radius: var(--radius) 0 0 var(--radius);
-  }
-  [dir="rtl"] .tl:not(.tl--featured) .pmedia {
-    border-radius: 0 var(--radius) var(--radius) 0;
-  }
-  .tl:not(.tl--featured) .pmedia__screen {
-    display: none;
-  }
-  .tl:not(.tl--featured) .pmedia__phone {
-    position: static;
-    width: 100%;
-    max-width: none;
-    border-width: 2px;
-    border-radius: 12px;
-  }
-  .tl:not(.tl--featured) .pcard__body {
-    padding: 14px 14px 14px 12px;
-    gap: 8px;
-  }
-  .tl:not(.tl--featured) .pcard__title {
-    font-size: 18px;
-  }
-  .tl:not(.tl--featured) .pcard__desc {
-    font-size: 13.5px;
-    line-height: 1.5;
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .tl:not(.tl--featured) .pcard__label {
-    font-size: 10.5px;
-  }
-  .tl:not(.tl--featured) .chips li {
-    font-size: 11px;
-  }
-  .tl:not(.tl--featured) .chips li + li::before {
-    margin-inline: 5px;
-  }
-  .pcard__links {
-    gap: 6px;
-  }
-
   /* The featured case study stays full width, but tighter. */
   .tl--featured .pmedia {
     aspect-ratio: 16 / 10;
@@ -2782,5 +2730,165 @@ html:not(.anim-ready) .step__line {
   .hero {
     min-height: min(100svh, 640px);
     padding-bottom: 12px;
+  }
+}
+
+/* ==========================================================================
+   Phone layout (under 760px): designed for the phone, not squeezed from desktop
+   ========================================================================== */
+@media (max-width: 759px) {
+  /* Hero: the mosaic fills the screen behind the headline, dimmed, and the text sits
+     on the lower part over a soft shade, like a cover. */
+  .hero {
+    min-height: 100svh;
+    min-height: max(100svh, 620px);
+    align-items: flex-end;
+    padding: calc(var(--nav-h) + 16px) var(--pad) 36px;
+  }
+  .hero__text {
+    width: 100%;
+    gap: 14px;
+  }
+  .hero__title,
+  [lang="ar"] .hero__title {
+    font-size: clamp(36px, 10.4vw, 46px);
+  }
+  [lang="ar"] .hero__title {
+    line-height: 1.32;
+  }
+  .hero__lede {
+    font-size: 15.5px;
+    color: #c9ced6;
+  }
+  .hero__eyebrow {
+    color: var(--text-2);
+  }
+  .hero__actions,
+  .hero__actions[class] {
+    flex-direction: row;
+    width: 100%;
+    gap: 8px;
+  }
+  .hero__actions .btn {
+    flex: 1;
+    justify-content: center;
+    padding: 0 12px;
+  }
+  .mosaic,
+  [dir="rtl"] .mosaic {
+    inset: 0;
+    width: auto;
+    opacity: 0.6;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 34%, rgba(0, 0, 0, 0.45) 56%, rgba(0, 0, 0, 0.12) 74%, transparent 90%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 34%, rgba(0, 0, 0, 0.45) 56%, rgba(0, 0, 0, 0.12) 74%, transparent 90%);
+  }
+  .mosaic__tilt,
+  [dir="rtl"] .mosaic__tilt {
+    inset: -14% -22% -10% -22%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .mcol:nth-child(3) {
+    display: block;
+  }
+  .mcol__group {
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+  .mosaic__blur--top {
+    height: 14%;
+  }
+  /* A gentle shade behind the text, so it reads on top of the screens. */
+  .hero::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset: 30% 0 0;
+    background: linear-gradient(rgba(11, 12, 14, 0), rgba(11, 12, 14, 0.78) 45%, rgba(11, 12, 14, 0.92));
+    pointer-events: none;
+  }
+
+  /* Tape: two parallel strips with room between them, moving in opposite directions. */
+  .tape {
+    height: 150px;
+  }
+  .tape__label {
+    top: 0;
+  }
+  .tape__strip--a {
+    top: 44%;
+    transform: translateY(-50%) rotate(-4deg);
+  }
+  .tape__strip--b {
+    top: 76%;
+    transform: translateY(-50%) rotate(-4deg);
+  }
+
+  /* Project cards: one banner per card (screen + phone), text below. */
+  .pmedia {
+    aspect-ratio: 16 / 10;
+    padding: 14px 14px 0;
+    padding-inline-end: 30%;
+  }
+  .pmedia__phone {
+    top: 12%;
+    inset-inline-end: 5%;
+    width: 27%;
+    border-width: 2px;
+    border-radius: 12px;
+  }
+  .pcard__body {
+    padding: 16px 16px 18px;
+    gap: 10px;
+  }
+  .pcard__title {
+    font-size: 21px;
+  }
+  .pcard__desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .tl--featured .pcard__desc {
+    -webkit-line-clamp: unset;
+    display: block;
+  }
+  .pcard__links {
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+  .pcard__links .text-btn {
+    margin-inline-start: auto;
+  }
+  .chips li {
+    font-size: 11px;
+  }
+  .chips li + li::before {
+    margin-inline: 6px;
+  }
+
+  /* Contact: one clear main action, the profiles in an even row under it. */
+  .contact__actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+  }
+  .contact__actions .btn:first-child {
+    grid-column: 1 / -1;
+    --h: 46px;
+  }
+  .contact__actions .btn {
+    justify-content: center;
+    padding: 0 8px;
+  }
+}
+@media (max-width: 759px) {
+  .tape {
+    height: 132px;
+  }
+  .tape + .section {
+    padding-top: 36px;
   }
 }
