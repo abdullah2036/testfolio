@@ -242,7 +242,7 @@ const en: Content = {
   },
   footer: {
     name: "Abdullah Bokhary",
-    credit: "© 2026 · Designed and built by me",
+    credit: "© 2026 · All rights reserved",
     backToTop: "Back to top",
   },
   gallery: {

@@ -55,6 +55,63 @@ function Media({ p, ui, featured }: { p: Project; ui: Content["ui"]; featured: b
 
 export default function Projects({ work, arrows, ui, locale }: Props) {
   const num = (i: number) => (i + 1).toLocaleString(locale === "ar" ? "ar-SA" : "en", { minimumIntegerDigits: 2 });
+  const lead = work.projects.filter((p) => p.featured);
+  const rest = work.projects.filter((p) => !p.featured);
+
+  const item = (p: Project, i: number) => {
+    const featured = !!p.featured;
+    return (
+      <li key={p.id} id={`p-${p.id}`} className={`tl ${featured ? "tl--featured" : ""}`}>
+        <span className="tl__node" aria-hidden="true" />
+        <p className="tl__index" aria-hidden="true">
+          {num(i)}
+        </p>
+        <article className="pcard" data-glow {...reveal(0)}>
+          <Media p={p} ui={ui} featured={featured} />
+          <div className="pcard__body">
+            <p className="pcard__label">
+              <span>{p.label}</span>
+              {featured && <span className="badge">{work.featuredBadge}</span>}
+            </p>
+            <h3 className="pcard__title">{p.title}</h3>
+            <p className="pcard__desc">{p.description}</p>
+
+            {p.credits && (
+              <dl className="credits">
+                <div className="credits__mine">
+                  <dt>{ui.mine}</dt>
+                  <dd>{p.credits.mine}</dd>
+                </div>
+                <div>
+                  <dt>{ui.theirs}</dt>
+                  <dd>{p.credits.theirs}</dd>
+                </div>
+              </dl>
+            )}
+
+            {p.stats && (
+              <dl className="stats">
+                {p.stats.map((s) => (
+                  <div key={s.label} className="stats__item">
+                    <dt>{s.value}</dt>
+                    <dd>{s.label}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+
+            <ul className="chips" dir="ltr" aria-label={ui.stack}>
+              {p.tech.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+            <Links p={p} arrows={arrows} ui={ui} />
+          </div>
+        </article>
+      </li>
+    );
+  };
+
   return (
     <section id="work" className="section work" aria-labelledby="work-title">
       <SectionHead id="work-title" eyebrow={work.eyebrow} title={work.title} accent={work.accent} body={work.body} />
@@ -64,59 +121,17 @@ export default function Projects({ work, arrows, ui, locale }: Props) {
           <span className="timeline__fill" data-timeline-fill />
         </span>
         <ol className="timeline__list">
-        {work.projects.map((p, i) => {
-          const featured = !!p.featured;
-          return (
-            <li key={p.id} id={`p-${p.id}`} className={`tl ${featured ? "tl--featured" : ""}`}>
-              <span className="tl__node" aria-hidden="true" />
-              <p className="tl__index" aria-hidden="true">
-                {num(i)}
-              </p>
-              <article className="pcard" data-glow {...reveal(0)}>
-                <Media p={p} ui={ui} featured={featured} />
-                <div className="pcard__body">
-                  <p className="pcard__label">
-                    <span>{p.label}</span>
-                    {featured && <span className="badge">{work.featuredBadge}</span>}
-                  </p>
-                  <h3 className="pcard__title">{p.title}</h3>
-                  <p className="pcard__desc">{p.description}</p>
-
-                  {p.credits && (
-                    <dl className="credits">
-                      <div className="credits__mine">
-                        <dt>{ui.mine}</dt>
-                        <dd>{p.credits.mine}</dd>
-                      </div>
-                      <div>
-                        <dt>{ui.theirs}</dt>
-                        <dd>{p.credits.theirs}</dd>
-                      </div>
-                    </dl>
-                  )}
-
-                  {p.stats && (
-                    <dl className="stats">
-                      {p.stats.map((s) => (
-                        <div key={s.label} className="stats__item">
-                          <dt>{s.value}</dt>
-                          <dd>{s.label}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
-
-                  <ul className="chips" dir="ltr" aria-label={ui.stack}>
-                    {p.tech.map((t) => (
-                      <li key={t}>{t}</li>
-                    ))}
-                  </ul>
-                  <Links p={p} arrows={arrows} ui={ui} />
-                </div>
-              </article>
-            </li>
-          );
-        })}
+          {lead.map((p) => item(p, work.projects.indexOf(p)))}
+          {/* On phones the rest become a sideways row that glides along as you scroll
+              (and can be swiped); on wider screens they continue the timeline. */}
+          <li className="tl-group">
+            <ol className="prail" data-prail>
+              {rest.map((p) => item(p, work.projects.indexOf(p)))}
+            </ol>
+            <span className="prail__meter" aria-hidden="true">
+              <span data-prail-bar />
+            </span>
+          </li>
         </ol>
       </div>
 

@@ -243,7 +243,7 @@ const ar: Content = {
   },
   footer: {
     name: "عبدالله بخاري",
-    credit: "© ٢٠٢٦ · صمّمته وبنيته بنفسي",
+    credit: "© ٢٠٢٦ · جميع الحقوق محفوظة",
     backToTop: "إلى الأعلى",
   },
   gallery: {

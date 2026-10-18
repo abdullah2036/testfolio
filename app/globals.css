@@ -2,6 +2,7 @@
    Tokens
    ========================================================================== */
 :root {
+  --u: max(1vw, 1lvh);
   --bg: #0b0c0e;
   --bg-2: #0f1113;
   --surface: #131619;
@@ -57,8 +58,8 @@ html {
 body {
   min-height: 100svh;
   background:
-    radial-gradient(60vw 50vh at 85% -10%, rgba(52, 230, 190, 0.06), transparent 70%),
-    radial-gradient(50vw 40vh at 10% 0%, rgba(160, 123, 255, 0.05), transparent 70%),
+    radial-gradient(60vw 50lvh at 85% -10%, rgba(52, 230, 190, 0.06), transparent 70%),
+    radial-gradient(50vw 40lvh at 10% 0%, rgba(160, 123, 255, 0.05), transparent 70%),
     var(--bg);
   background-repeat: no-repeat;
   color: var(--text);
@@ -71,8 +72,8 @@ body {
 }
 [dir="rtl"] body {
   background:
-    radial-gradient(60vw 50vh at 15% -10%, rgba(52, 230, 190, 0.06), transparent 70%),
-    radial-gradient(50vw 40vh at 90% 0%, rgba(160, 123, 255, 0.05), transparent 70%),
+    radial-gradient(60vw 50lvh at 15% -10%, rgba(52, 230, 190, 0.06), transparent 70%),
+    radial-gradient(50vw 40lvh at 90% 0%, rgba(160, 123, 255, 0.05), transparent 70%),
     var(--bg);
   background-repeat: no-repeat;
 }
@@ -122,29 +123,33 @@ ol {
    slowly, barely visible, so the page never feels flat below the hero. */
 .ambient {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* lvh, not 100%: the layer keeps its size when the phone's address bar hides. */
+  height: 100lvh;
   z-index: -2;
   overflow: hidden;
   pointer-events: none;
 }
 .ambient span {
   position: absolute;
-  width: 80vmax;
-  height: 80vmax;
+  width: calc(80 * var(--u));
+  height: calc(80 * var(--u));
   border-radius: 50%;
 }
 .ambient span:nth-child(1) {
   top: 10%;
-  left: -40vmax;
+  left: calc(-40 * var(--u));
   background: radial-gradient(closest-side, rgba(52, 230, 190, 0.07), transparent);
 }
 .ambient span:nth-child(2) {
-  top: -30vmax;
-  right: -36vmax;
+  top: calc(-30 * var(--u));
+  right: calc(-36 * var(--u));
   background: radial-gradient(closest-side, rgba(64, 180, 240, 0.06), transparent);
 }
 .ambient span:nth-child(3) {
-  bottom: -46vmax;
+  top: calc(100lvh - 34 * var(--u));
   left: 20vw;
   background: radial-gradient(closest-side, rgba(160, 123, 255, 0.07), transparent);
 }
@@ -166,7 +171,7 @@ ol {
     transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translate3d(12vmax, -8vmax, 0);
+    transform: translate3d(calc(12 * var(--u)), calc(-8 * var(--u)), 0);
   }
 }
 
@@ -660,7 +665,7 @@ ol {
   position: absolute;
   z-index: -1;
   top: 0;
-  bottom: -30vh;
+  bottom: -30lvh;
   left: 50%;
   width: 100vw;
   margin-left: -50vw;
@@ -671,24 +676,24 @@ ol {
 }
 .aura span {
   position: absolute;
-  width: 70vmax;
-  height: 70vmax;
+  width: calc(70 * var(--u));
+  height: calc(70 * var(--u));
   border-radius: 50%;
   opacity: 0.9;
 }
 .aura span:nth-child(1) {
-  top: -34vmax;
+  top: calc(-34 * var(--u));
   inset-inline-start: 6vw;
   background: radial-gradient(closest-side, rgba(52, 230, 190, 0.34), rgba(52, 230, 190, 0.08) 55%, transparent);
 }
 .aura span:nth-child(2) {
-  top: -10vmax;
-  inset-inline-end: -26vmax;
+  top: calc(-10 * var(--u));
+  inset-inline-end: calc(-26 * var(--u));
   background: radial-gradient(closest-side, rgba(64, 180, 240, 0.32), rgba(64, 180, 240, 0.07) 55%, transparent);
 }
 .aura span:nth-child(3) {
-  bottom: -30vmax;
-  inset-inline-start: -14vmax;
+  bottom: calc(-30 * var(--u));
+  inset-inline-start: calc(-14 * var(--u));
   background: radial-gradient(closest-side, rgba(160, 110, 255, 0.34), rgba(160, 110, 255, 0.08) 55%, transparent);
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -709,7 +714,7 @@ ol {
     transform: translate3d(0, 0, 0) scale(1);
   }
   to {
-    transform: translate3d(-6vmax, 5vmax, 0) scale(1.12);
+    transform: translate3d(calc(-6 * var(--u)), calc(5 * var(--u)), 0) scale(1.12);
   }
 }
 
@@ -2890,5 +2895,183 @@ html:not(.anim-ready) .step__line {
   }
   .tape + .section {
     padding-top: 36px;
+  }
+}
+
+/* ==========================================================================
+   Supporting projects: part of the timeline on wider screens, a sideways row on phones
+   ========================================================================== */
+.tl-group,
+.prail {
+  display: contents;
+}
+.prail__meter {
+  display: none;
+}
+@media (max-width: 759px) {
+  .timeline {
+    padding-inline-start: 0;
+  }
+  .timeline__rail,
+  .tl__node {
+    display: none;
+  }
+  .tl-group {
+    display: block;
+    margin-inline: calc(-1 * var(--pad));
+  }
+  .prail {
+    display: flex;
+    gap: 12px;
+    padding: 2px var(--pad) 10px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--pad);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .prail::-webkit-scrollbar {
+    display: none;
+  }
+  .prail > .tl {
+    flex: 0 0 min(84vw, 340px);
+    display: flex;
+    flex-direction: column;
+    scroll-snap-align: start;
+    transform-origin: 50% 60%;
+  }
+  .prail > .tl .pcard {
+    flex: 1;
+    align-content: start;
+  }
+  .prail__meter {
+    display: block;
+    position: relative;
+    height: 2px;
+    margin: 12px var(--pad) 0;
+    border-radius: 2px;
+    background: var(--line-2);
+    overflow: hidden;
+  }
+  .prail__meter span {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 33%;
+    border-radius: 2px;
+    background: var(--grad);
+  }
+  /* Cards slide in from the side as they come into view. */
+  @media (prefers-reduced-motion: no-preference) {
+    .anim-ready .prail [data-reveal]:not(.is-in) {
+      opacity: 0;
+      transform: translate3d(56px, 0, 0) scale(0.94);
+    }
+    [dir="rtl"].anim-ready .prail [data-reveal]:not(.is-in) {
+      transform: translate3d(-56px, 0, 0) scale(0.94);
+    }
+  }
+}
+
+/* ==========================================================================
+   Loading screen: the A draws itself, then the page fades in
+   ========================================================================== */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 18px;
+  background:
+    radial-gradient(50% 40% at 50% 45%, rgba(64, 180, 240, 0.1), transparent 70%),
+    var(--bg);
+  transition:
+    opacity 0.6s var(--ease),
+    visibility 0s linear 0.6s;
+  /* Safety net: never stay up longer than this, even without JavaScript. */
+  animation: loader-away 0.6s ease 4s forwards;
+}
+.loader.is-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+@keyframes loader-away {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+.loader__mark {
+  width: 64px;
+  height: 64px;
+}
+.loader__mark path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 0.9s var(--ease) forwards;
+}
+.loader__mark path:last-child {
+  animation-delay: 0.45s;
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.loader__name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+  opacity: 0;
+  animation: rise-in 0.7s var(--ease) 0.3s forwards;
+}
+.loader__bar {
+  position: relative;
+  width: 120px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.loader__bar span {
+  position: absolute;
+  inset: 0;
+  background: var(--grad);
+  transform-origin: left;
+  animation: load-bar 1.4s var(--ease) forwards;
+}
+[dir="rtl"] .loader__bar span {
+  transform-origin: right;
+}
+@keyframes load-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
+}
+.loader.is-done .loader__bar span {
+  animation: none;
+  transform: scaleX(1);
+  transition: transform 0.3s ease;
+}
+/* While the loader is up, entrance animations wait; they play as it fades. */
+.anim-ready.is-loading [data-reveal] {
+  opacity: 0 !important;
+  transform: translate3d(0, 18px, 0) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader__mark path,
+  .loader__name,
+  .loader__bar span {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
   }
 }

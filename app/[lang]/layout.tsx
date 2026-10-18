@@ -51,19 +51,38 @@ export const viewport: Viewport = { themeColor: "#0b0c0e", colorScheme: "dark" }
 export default async function RootLayout({ children, params }: LayoutProps<"/[lang]">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
-  const { dir } = getContent(lang);
+  const { dir, nav } = getContent(lang);
   return (
     <html
       lang={lang}
       dir={dir}
       data-scroll-behavior="smooth"
-      className={`${geist.variable} ${geistMono.variable} ${plexArabic.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${plexArabic.variable} is-loading`}
+      suppressHydrationWarning
     >
       <body>
         {/* Entrance animations start hidden; without JavaScript, show everything. */}
         <noscript>
-          <style>{"[data-reveal]{opacity:1!important;transform:none!important}"}</style>
+          <style>{"[data-reveal]{opacity:1!important;transform:none!important}.loader{display:none!important}"}</style>
         </noscript>
+        {/* Loading screen, shown until the page has loaded (Motion hides it). */}
+        <div className="loader" data-loader aria-hidden="true">
+          <svg className="loader__mark" viewBox="0 0 64 64">
+            <defs>
+              <linearGradient id="loader-grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#34e6be" />
+                <stop offset=".5" stopColor="#40b4f0" />
+                <stop offset="1" stopColor="#a07bff" />
+              </linearGradient>
+            </defs>
+            <path d="M18 48 L32 14 L46 48" pathLength="1" fill="none" stroke="url(#loader-grad)" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M24 37 H40" pathLength="1" fill="none" stroke="url(#loader-grad)" strokeWidth="4.5" strokeLinecap="round" />
+          </svg>
+          <span className="loader__name">{nav.wordmark}</span>
+          <span className="loader__bar">
+            <span />
+          </span>
+        </div>
         {/* Faint drifting light behind every page (see .ambient in globals.css). */}
         <div className="ambient" aria-hidden="true">
           <span />
