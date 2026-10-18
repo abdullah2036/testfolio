@@ -24,7 +24,7 @@ function CertLinks({ c, arrows }: { c: Certificate; arrows: Content["arrows"] })
 export default function Certificates({ certificates, arrows, ui }: Props) {
   return (
     <section id="certificates" className="section certs" aria-labelledby="certs-title">
-      <SectionHead id="certs-title" eyebrow={certificates.eyebrow} title={certificates.title} body={certificates.body} />
+      <SectionHead id="certs-title" eyebrow={certificates.eyebrow} title={certificates.title} accent={certificates.accent} body={certificates.body} />
 
       <div className="timeline timeline--certs" data-timeline>
         <span className="timeline__rail" aria-hidden="true">

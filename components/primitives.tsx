@@ -10,6 +10,7 @@ export const reveal = (step = 0): { "data-reveal": ""; style: CSSProperties } =>
 export function SectionHead({
   eyebrow,
   title,
+  accent,
   body,
   id,
   as: Tag = "h2",
@@ -17,6 +18,7 @@ export function SectionHead({
 }: {
   eyebrow: string;
   title: string;
+  accent?: string;
   body?: string;
   id?: string;
   as?: "h1" | "h2";
@@ -29,6 +31,12 @@ export function SectionHead({
       </p>
       <Tag className="shead__title" id={id} {...reveal(1)}>
         {title}
+        {accent && (
+          <>
+            {" "}
+            <span className="accent">{accent}</span>
+          </>
+        )}
       </Tag>
       {body && (
         <p className="shead__body" {...reveal(2)}>

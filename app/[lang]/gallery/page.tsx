@@ -47,7 +47,7 @@ export default async function GalleryPage({ params }: PageProps<"/[lang]/gallery
             {g.eyebrow}
           </p>
           <h1 className="ghero__title" {...reveal(1)}>
-            {g.title}
+            {g.title} <span className="accent">{g.accent}</span>
           </h1>
           <p className="ghero__intro" {...reveal(2)}>
             {g.intro}

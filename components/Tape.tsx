@@ -27,7 +27,10 @@ export default function Tape({ label }: { label: string }) {
   const half = Math.ceil(STACK.length / 2);
   const second = [...STACK.slice(half), ...STACK.slice(0, half)];
   return (
-    <section className="tape" aria-label={label} data-pause-offscreen>
+    <section className="tape" aria-labelledby="tape-label" data-pause-offscreen>
+      <p id="tape-label" className="eyebrow tape__label">
+        {label}
+      </p>
       <Strip words={STACK} variant="a" />
       <Strip words={second} variant="b" />
     </section>

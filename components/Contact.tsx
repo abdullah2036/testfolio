@@ -10,7 +10,7 @@ export default function Contact({ contact, arrows }: { contact: Content["contact
           {contact.eyebrow}
         </p>
         <h2 id="contact-title" className="contact__title" {...reveal(1)}>
-          {contact.title}
+          {contact.title} <span className="accent">{contact.accent}</span>
         </h2>
         <p className="shead__body" {...reveal(2)}>
           {contact.body}

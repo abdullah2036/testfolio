@@ -17,7 +17,7 @@ export default function Beyond({ c }: { c: Content }) {
 
   return (
     <section id="beyond" className="section beyond" aria-labelledby="beyond-title">
-      <SectionHead id="beyond-title" eyebrow={beyond.eyebrow} title={beyond.title} body={beyond.body}>
+      <SectionHead id="beyond-title" eyebrow={beyond.eyebrow} title={beyond.title} accent={beyond.accent} body={beyond.body}>
         <div className="shead__action" {...reveal(3)}>
           <Button href={href} arrow={arrows.forward}>
             {beyond.cta}

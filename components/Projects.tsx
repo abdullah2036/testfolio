@@ -57,7 +57,7 @@ export default function Projects({ work, arrows, ui, locale }: Props) {
   const num = (i: number) => (i + 1).toLocaleString(locale === "ar" ? "ar-SA" : "en", { minimumIntegerDigits: 2 });
   return (
     <section id="work" className="section work" aria-labelledby="work-title">
-      <SectionHead id="work-title" eyebrow={work.eyebrow} title={work.title} body={work.body} />
+      <SectionHead id="work-title" eyebrow={work.eyebrow} title={work.title} accent={work.accent} body={work.body} />
 
       <div className="timeline" data-timeline>
         <span className="timeline__rail" aria-hidden="true">

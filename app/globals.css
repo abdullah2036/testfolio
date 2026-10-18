@@ -118,6 +118,58 @@ ol {
   }
 }
 
+/* Ambient light behind the whole page: faint teal, blue and violet blooms that drift
+   slowly, barely visible, so the page never feels flat below the hero. */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ambient span {
+  position: absolute;
+  width: 80vmax;
+  height: 80vmax;
+  border-radius: 50%;
+}
+.ambient span:nth-child(1) {
+  top: 10%;
+  left: -40vmax;
+  background: radial-gradient(closest-side, rgba(52, 230, 190, 0.07), transparent);
+}
+.ambient span:nth-child(2) {
+  top: -30vmax;
+  right: -36vmax;
+  background: radial-gradient(closest-side, rgba(64, 180, 240, 0.06), transparent);
+}
+.ambient span:nth-child(3) {
+  bottom: -46vmax;
+  left: 20vw;
+  background: radial-gradient(closest-side, rgba(160, 123, 255, 0.07), transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ambient span {
+    animation: ambient-drift 38s ease-in-out infinite alternate;
+  }
+  .ambient span:nth-child(2) {
+    animation-duration: 46s;
+    animation-delay: -20s;
+  }
+  .ambient span:nth-child(3) {
+    animation-duration: 42s;
+    animation-delay: -12s;
+  }
+}
+@keyframes ambient-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(12vmax, -8vmax, 0);
+  }
+}
+
 /* ==========================================================================
    Shared pieces
    ========================================================================== */
@@ -720,12 +772,16 @@ ol {
   inset-inline-end: 0;
   width: 45%;
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 40%);
-  mask-image: linear-gradient(to right, transparent, #000 40%);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 40%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 40%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+  mask-composite: intersect;
 }
 [dir="rtl"] .mosaic {
-  -webkit-mask-image: linear-gradient(to left, transparent, #000 40%);
-  mask-image: linear-gradient(to left, transparent, #000 40%);
+  -webkit-mask-image: linear-gradient(to left, transparent, #000 40%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to left, transparent, #000 40%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+  mask-composite: intersect;
 }
 .mosaic__tilt {
   position: absolute;
@@ -796,15 +852,8 @@ ol {
 }
 .mosaic__blur--top {
   top: 0;
-  background: linear-gradient(var(--bg), rgba(11, 12, 14, 0));
-  -webkit-mask-image: linear-gradient(#000 30%, transparent);
-  mask-image: linear-gradient(#000 30%, transparent);
-}
-.mosaic__blur--bottom {
-  bottom: 0;
-  background: linear-gradient(rgba(11, 12, 14, 0), var(--bg));
-  -webkit-mask-image: linear-gradient(transparent, #000 70%);
-  mask-image: linear-gradient(transparent, #000 70%);
+  -webkit-mask-image: linear-gradient(#000 20%, transparent);
+  mask-image: linear-gradient(#000 20%, transparent);
 }
 .tile {
   position: relative;
@@ -874,12 +923,16 @@ ol {
     width: 56%;
     /* Bleed to the edge of the window on wide screens. */
     inset-inline-end: min(0px, calc((var(--max) + 2 * var(--pad) - 100vw) / 2));
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 22%);
-    mask-image: linear-gradient(to right, transparent, #000 22%);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 22%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(to right, transparent, #000 22%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+    mask-composite: intersect;
   }
   [dir="rtl"] .mosaic {
-    -webkit-mask-image: linear-gradient(to left, transparent, #000 22%);
-    mask-image: linear-gradient(to left, transparent, #000 22%);
+    -webkit-mask-image: linear-gradient(to left, transparent, #000 22%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(to left, transparent, #000 22%), linear-gradient(to bottom, transparent, #000 14%, #000 42%, rgba(0, 0, 0, 0.72) 54%, rgba(0, 0, 0, 0.45) 65%, rgba(0, 0, 0, 0.24) 76%, rgba(0, 0, 0, 0.1) 86%, rgba(0, 0, 0, 0.03) 94%, transparent);
+    mask-composite: intersect;
   }
   .mosaic__tilt {
     inset: -24% -12% -24% 4%;
@@ -968,14 +1021,23 @@ ol {
 .tape__strip--a {
   z-index: 2;
   transform: translateY(-50%) rotate(-4deg);
-  background: var(--grad);
+  background: linear-gradient(100deg, var(--green), #6fd3c9 30%, var(--violet));
   color: #0b0c0e;
   box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.8);
 }
 .tape__strip--b {
   transform: translateY(-50%) rotate(3deg);
-  background: #e6e8eb;
-  color: #15171a;
+  background: linear-gradient(100deg, var(--blue), #7d98f6 50%, var(--violet));
+  color: #0b0c0e;
+}
+/* The section's name, set like a label on the tape's corner. */
+.tape__label {
+  position: absolute;
+  z-index: 3;
+  top: 6px;
+  left: max(var(--pad), calc((100vw - var(--max)) / 2));
+  right: max(var(--pad), calc((100vw - var(--max)) / 2));
+  color: var(--text-2);
 }
 .tape__track {
   display: flex;
@@ -2712,5 +2774,12 @@ html:not(.anim-ready) .step__line {
     height: 36px;
     padding: 0 14px;
     font-size: 13.5px;
+  }
+}
+
+@media (max-width: 759px) {
+  .hero {
+    min-height: min(100svh, 640px);
+    padding-bottom: 12px;
   }
 }

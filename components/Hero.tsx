@@ -101,9 +101,8 @@ export default function Hero({ c }: { c: Content }) {
             </div>
           ))}
         </div>
-        {/* Soft, blurred edges top and bottom, so the loop never shows a hard cut. */}
+        {/* A blurred top edge under the nav; the bottom simply fades into the page. */}
         <span className="mosaic__blur mosaic__blur--top" aria-hidden="true" />
-        <span className="mosaic__blur mosaic__blur--bottom" aria-hidden="true" />
       </div>
     </section>
   );

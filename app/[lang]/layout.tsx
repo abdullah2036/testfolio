@@ -64,6 +64,12 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
         <noscript>
           <style>{"[data-reveal]{opacity:1!important;transform:none!important}"}</style>
         </noscript>
+        {/* Faint drifting light behind every page (see .ambient in globals.css). */}
+        <div className="ambient" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
         {children}
       </body>
     </html>

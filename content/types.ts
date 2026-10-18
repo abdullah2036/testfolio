@@ -40,7 +40,8 @@ export type Certificate = {
   list?: { label: string; items: string[]; ltr?: boolean };
 };
 
-export type Section = { eyebrow: string; title: string; body?: string };
+/** A section header; `accent` (the end of the title) carries the accent gradient. */
+export type Section = { eyebrow: string; title: string; accent?: string; body?: string };
 
 export type Content = {
   locale: Locale;
@@ -105,6 +106,7 @@ export type Content = {
   gallery: {
     eyebrow: string;
     title: string;
+    accent: string;
     intro: string;
     all: string;
     empty: string;
