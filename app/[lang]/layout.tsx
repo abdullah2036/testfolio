@@ -1,7 +1,9 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { notFound } from "next/navigation";
 import { getContent, hasLocale, locales } from "@/content";
+import { SITE_URL } from "@/lib/site";
 import "../globals.css";
 
 // Latin: a clean contemporary grotesque. Mono only for metadata.
@@ -15,8 +17,6 @@ const plexArabic = IBM_Plex_Sans_Arabic({
   preload: false,
 });
 
-// Full public URL including any base path, e.g. https://abdullah2036.github.io/testfolio
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const pageUrl = (lang: string) => `${SITE_URL}/${lang}/`;
 
 export function generateStaticParams() {
@@ -71,6 +71,8 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
           <span />
         </div>
         {children}
+        {/* Vercel Analytics: page views on the Vercel deployment (not in the GitHub Pages export). */}
+        {process.env.GITHUB_PAGES !== "true" && <Analytics />}
       </body>
     </html>
   );

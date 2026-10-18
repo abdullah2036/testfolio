@@ -6,10 +6,10 @@ const ar: Content = {
   locale: "ar",
   dir: "rtl",
   meta: {
-    title: "عبدالله بخاري — مطوّر برمجيات مستقل",
+    title: "عبدالله بخاري",
     description:
       "مطوّر برمجيات مستقل وطالب علم بيانات. أبني برمجيات تحلّ مشكلات حقيقية، من أول نقاش حتى بيئة الإنتاج",
-    galleryTitle: "المعرض الرقمي — عبدالله بخاري",
+    galleryTitle: "عبدالله بخاري",
     galleryDescription: "هاكاثونات ومؤتمرات حضرتها",
   },
   arrows: { forward: "←", back: "→", external: "↖", up: "↑" },

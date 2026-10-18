@@ -9,8 +9,8 @@ import { Button, reveal } from "@/components/primitives";
 import { getContent, hasLocale } from "@/content";
 import { galleryEvents, galleryItems } from "@/lib/gallery";
 import { localeHref } from "@/lib/paths";
+import { SITE_URL } from "@/lib/site";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const pageUrl = (lang: string) => `${SITE_URL}/${lang}/gallery/`;
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/gallery">): Promise<Metadata> {

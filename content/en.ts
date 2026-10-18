@@ -5,10 +5,10 @@ const en: Content = {
   locale: "en",
   dir: "ltr",
   meta: {
-    title: "Abdullah Bokhary — Independent software developer",
+    title: "Abdullah Bokhary",
     description:
       "Independent software developer and data science student. I build software that solves real problems, from the first conversation to production",
-    galleryTitle: "Digital gallery — Abdullah Bokhary",
+    galleryTitle: "Abdullah Bokhary",
     galleryDescription: "Hackathons and conferences I've attended",
   },
   arrows: { forward: "→", back: "←", external: "↗", up: "↑" },
