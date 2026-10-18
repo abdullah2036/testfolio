@@ -1,55 +1,42 @@
 import type { ComponentProps, CSSProperties, ReactNode } from "react";
-import type { Eyebrow as EyebrowData, Heading } from "@/content/types";
 
-/*
- * Entrance motion: elements carry data-anim (lines | wipe | rise) and are revealed once
- * by the Interactions controller when they enter the viewport. `reveal` is a stagger
- * step (0, 1, 2…) within a group; `delay` sets an absolute delay in seconds.
- */
-type RevealProps = { reveal?: number; delay?: number };
-const animAttr = (kind: "lines" | "wipe" | "rise", { reveal, delay }: RevealProps) => ({
-  "data-anim": kind,
-  style: { "--d": `${delay ?? (reveal ?? 0) * 0.1}s` } as CSSProperties,
+/** Entrance motion: [data-reveal] elements rise in once they enter the viewport (see Motion). */
+export const reveal = (step = 0): { "data-reveal": ""; style: CSSProperties } => ({
+  "data-reveal": "",
+  style: { "--d": `${step * 0.08}s` } as CSSProperties,
 });
 
-export function Eyebrow({ num, label, ...r }: EyebrowData & RevealProps) {
-  return (
-    <div className="eyebrow" {...animAttr("wipe", r)}>
-      <span className="eyebrow__in">
-      {num}
-      {"  //  "}
-      {label}
-      </span>
-    </div>
-  );
-}
-
-/** A display heading whose lines rise from behind a mask, one after another. */
-export function Display({
+/** Section header: a mono eyebrow, a title and an optional lede. */
+export function SectionHead({
+  eyebrow,
+  title,
+  body,
+  id,
   as: Tag = "h2",
-  heading,
-  variant = "section",
-  ...r
+  children,
 }: {
+  eyebrow: string;
+  title: string;
+  body?: string;
+  id?: string;
   as?: "h1" | "h2";
-  heading: Heading;
-  variant?: "hero" | "section" | "contact";
-} & RevealProps) {
-  const lines = heading.lines.length;
+  children?: ReactNode;
+}) {
   return (
-    <Tag className={`display display--${variant}`} {...animAttr("lines", r)}>
-      {heading.lines.map((line, i) => (
-        <span key={line} className="line" style={{ "--i": i } as CSSProperties}>
-          <span className="line__in">{line}</span>
-        </span>
-      ))}
-      <span className="line" style={{ "--i": lines } as CSSProperties}>
-        <span className="line__in">
-          {heading.lead}
-          <span className="accent">{heading.accent}</span>
-        </span>
-      </span>
-    </Tag>
+    <header className="shead">
+      <p className="eyebrow" {...reveal(0)}>
+        {eyebrow}
+      </p>
+      <Tag className="shead__title" id={id} {...reveal(1)}>
+        {title}
+      </Tag>
+      {body && (
+        <p className="shead__body" {...reveal(2)}>
+          {body}
+        </p>
+      )}
+      {children}
+    </header>
   );
 }
 
@@ -65,43 +52,27 @@ export function Roll({ children }: { children: string }) {
   );
 }
 
-export type ArrowKind = "forward" | "external";
-
-/** A round button whose arrow slides out and back in on hover. */
-export function ArrowCircle({ arrow, kind }: { arrow: string; kind: ArrowKind }) {
-  return (
-    <span className="circle" data-kind={kind} aria-hidden="true">
-      <span className="circle__arrow">{arrow}</span>
-      <span className="circle__arrow circle__arrow--next">{arrow}</span>
-    </span>
-  );
-}
-
-/** Text followed by a round arrow button, as in "Explore my work →". */
-export function CircleLink({
+/** Primary / secondary pill buttons with a small trailing arrow. */
+export function Button({
   children,
   arrow,
-  kind = "forward",
-  size = "lg",
+  variant = "primary",
   external,
   className = "",
   ...rest
-}: ComponentProps<"a"> & {
-  arrow: string;
-  kind?: ArrowKind;
-  size?: "lg" | "sm";
-  external?: boolean;
-  children: ReactNode;
-}) {
+}: ComponentProps<"a"> & { arrow?: string; variant?: "primary" | "ghost"; external?: boolean; children: string }) {
   return (
     <a
-      className={`circle-link circle-link--${size} ${className}`}
-      data-magnetic
+      className={`btn btn--${variant} ${className}`}
       {...(external ? { target: "_blank", rel: "noopener" } : {})}
       {...rest}
     >
-      <span className="circle-link__text">{typeof children === "string" ? <Roll>{children}</Roll> : children}</span>
-      <ArrowCircle arrow={arrow} kind={kind} />
+      <Roll>{children}</Roll>
+      {arrow && (
+        <span className="btn__arrow" aria-hidden="true">
+          {arrow}
+        </span>
+      )}
     </a>
   );
 }

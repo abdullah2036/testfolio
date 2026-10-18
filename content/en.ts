@@ -1,15 +1,17 @@
 import type { Content } from "./types";
-import { EMAIL, GITHUB_HANDLE, IBM_COURSES, IMAGES, LINKS, SOCIAL, TINTS } from "./shared";
+import { EMAIL, GITHUB_HANDLE, IBM_COURSES, IMAGES, LINKS, SHOTS, SOCIAL } from "./shared";
 
 const en: Content = {
   locale: "en",
   dir: "ltr",
   meta: {
-    title: "Abdullah Bokhary — Software engineer & web developer",
+    title: "Abdullah Bokhary — Independent software developer",
     description:
-      "Software engineer and full-stack web developer in Saudi Arabia. I build practical solutions to interesting problems, from idea and design to deployment and maintenance.",
+      "Independent software developer and data science student in Saudi Arabia. I build software that solves real problems, from the first conversation to production.",
+    galleryTitle: "Gallery — Abdullah Bokhary",
+    galleryDescription: "Hackathons, events and the moments around the work.",
   },
-  arrows: { forward: "→", external: "↗", up: "↑" },
+  arrows: { forward: "→", back: "←", external: "↗", up: "↑" },
   ui: {
     details: "Details",
     close: "Close",
@@ -18,62 +20,41 @@ const en: Content = {
     stack: "Built with",
     role: "My role",
     issued: "Issued",
-    prev: "Previous project",
-    next: "Next project",
-    goTo: "Go to project",
+    mine: "My part",
+    theirs: "Collaborators",
+    view: "View",
   },
   nav: {
-    wordmark: "ABDULLAH",
+    wordmark: "Abdullah Bokhary",
     about: "About",
     work: "Projects",
+    gallery: "Gallery",
     certificates: "Certificates",
     contact: "Contact",
     cta: "Let's talk",
     menuLabel: "Menu",
+    closeLabel: "Close menu",
+    home: "Home",
     switchLabel: "عربي",
     switchAria: "اقرأ الموقع بالعربية",
     switchLocale: "ar",
   },
   hero: {
-    eyebrow: { num: "01", label: "Hello" },
-    heading: { lines: ["Abdullah"], accent: "Bokhary." },
-    lede: "Software engineer and web developer. I build practical solutions to interesting problems.",
-    cta: "Explore my work",
-    meta: "Saudi Arabia · Open to client work",
-    rail: ["Ideas", "Design", "Code", "Impact"],
+    eyebrow: "Independent developer · Data science student",
+    title: "I build software that solves real problems.",
+    lede: "I'm Abdullah Bokhary, a freelance developer and data science student in Saudi Arabia. I take products from the first conversation to production, and keep them running after launch.",
+    primary: "Explore projects",
+    secondary: "Visit the gallery",
+    status: "Open to freelance work",
+    mosaicLabel: "Screens from my projects, and my certificates",
   },
-  about: {
-    eyebrow: { num: "02", label: "About me" },
-    heading: { lines: ["Built with"], accent: "intention." },
-    body: "I start with the problem, then build toward it. Most of my clients found me through someone I'd already built for.",
-    steps: [
-      {
-        label: "01 — Idea & design",
-        plate: "Idea & design",
-        text: "Who is it for, what does it need to do, how should it feel. I map the flow and design the interface first.",
-      },
-      {
-        label: "02 — Code",
-        plate: "Code",
-        text: "Clean architecture across frontend and backend, so it stays fast and easy to change.",
-      },
-      {
-        label: "03 — Deployment",
-        plate: "Deployment",
-        text: "Hosting, domains, databases and monitoring, set up properly and shipped to production.",
-      },
-      {
-        label: "04 — Maintenance",
-        plate: "Maintenance",
-        text: "After launch I keep it running: updates, fixes and new features as the business grows.",
-      },
-    ],
-  },
+  tape: { label: "Tools I work with" },
   work: {
-    eyebrow: { num: "03", label: "Projects" },
-    heading: { lines: ["Work"], lead: "that ", accent: "works." },
-    featuredBadge: "Featured",
-    moreTitle: "More projects",
+    eyebrow: "Selected work",
+    title: "Software people actually use.",
+    body: "A timeline of what I've built, starting with the platform I'm proudest of.",
+    featuredBadge: "Case study",
+    caseStudy: "Featured case study",
     allWork: { label: "View all my work", handle: `@${GITHUB_HANDLE}`, href: SOCIAL.githubRepos },
     projects: [
       {
@@ -86,12 +67,17 @@ const en: Content = {
         tech: ["Next.js", "TypeScript", "PostgreSQL", "Supabase", "Vercel"],
         stats: [
           { value: "400", label: "visitors in 60 s, 0 failures" },
-          { value: "249", label: "automated tests" },
+          { value: "1,561", label: "requests in the load test, p95 ≈ 500 ms" },
+          { value: "249", label: "automated tests in CI" },
           { value: "15", label: "Postgres tables" },
         ],
         primary: { label: "Case study & code", href: LINKS.scinvites },
         image: { ...IMAGES.scinvites, alt: "SCinvites home page: club leader sign-in and the event invitation designs" },
-        tint: TINTS[0],
+        phone: { ...SHOTS.scinvitesInvite, alt: "An SCinvites invitation on a phone: event title, guest name, VIP stamp and RSVP buttons" },
+        credits: {
+          mine: "Engineering, deployment and operations: the database, backend, tests, launch and running it in production.",
+          theirs: "Product direction and visual design, led by the Science Club's leader.",
+        },
         role: "Engineering, deployment and operations. The club leader led the product and visual design.",
         story: [
           "SCinvites is the Arabic, right-to-left platform the Science Club at Umm Al-Qura University uses to invite guests, members and VIPs to its events. A guest opens a personal or public link on their phone and gets an animated invitation with their name and stamp, the venue with a map QR code, an RSVP and an add-to-calendar file.",
@@ -115,7 +101,7 @@ const en: Content = {
         primary: { label: "Live site", href: LINKS.pairingBoardLive },
         secondary: { label: "Code", href: LINKS.pairingBoardCode },
         image: { ...IMAGES.pairingBoard, alt: "Pairing Board showing a player's board, colour and opponent" },
-        tint: TINTS[1],
+        phone: { ...SHOTS.pairingBoard, alt: "Pairing Board on a phone, highlighting a player's board, colour and opponent" },
         story: [
           "At tournaments, players crowd around printed pairing sheets or scroll huge tables on their phones looking for their own board. Pairing Board shows only what a player needs: board number, colour, opponent, rating, points and result.",
           "chess-results.com has no API and no CORS headers, so a Cloudflare Worker sits in between. It scrapes the pairing and start-list pages, maps them to clean JSON, and caches at the edge so a whole hall refreshing at once costs the source a handful of requests.",
@@ -138,7 +124,7 @@ const en: Content = {
         primary: { label: "Live site", href: LINKS.eloriaLive },
         secondary: { label: "Code", href: LINKS.eloriaCode },
         image: { ...IMAGES.eloria, alt: "Eloria Story library page" },
-        tint: TINTS[2],
+        phone: { ...SHOTS.eloria, alt: "Eloria Story's home page on a phone" },
         story: [
           "A self-publishing site for an Arabic novelist: a library, novel pages, a reader with font controls and a reading-progress bar, quotes and an about page.",
           "Version one kept everything in a JSON file committed through the GitHub API. Version two keeps the reading experience and moves it onto a real backend: Postgres tables, Supabase Auth for the author, covers in Storage, and row-level security deciding who can write.",
@@ -160,7 +146,7 @@ const en: Content = {
         primary: { label: "Live site", href: LINKS.maherOsLive },
         secondary: { label: "Code", href: LINKS.maherOsCode },
         image: { ...IMAGES.maherOs, alt: "A macOS-style desktop with the Services and Terminal windows open" },
-        tint: TINTS[3],
+        phone: { ...SHOTS.maherOs, alt: "The phone home screen of Computerjy Maher OS, with app icons and a dock" },
         story: [
           "A studio site is usually a list of services on a scrolling page. This one turns every section into something a computer already has a shape for: services become a settings app, the portfolio a browser with real URLs in the bar, reviews a message thread, contact a compose window that sends on WhatsApp, and the sitemap a file browser.",
           "One kernel drives two shells. A single store holds the device, language, appearance and window list, so opening an app behaves the same from the dock, from search, from a file or from the terminal.",
@@ -175,9 +161,9 @@ const en: Content = {
     ],
   },
   certificates: {
-    eyebrow: { num: "04", label: "Certificates" },
-    heading: { lines: ["Always"], accent: "learning." },
-    body: "Certifications, workshops and achievements along the way.",
+    eyebrow: "Credentials",
+    title: "Always learning.",
+    body: "Professional certifications, each with its credential ID.",
     items: [
       {
         id: "ibm",
@@ -211,12 +197,38 @@ const en: Content = {
       },
     ],
   },
+  about: {
+    eyebrow: "About",
+    title: "Start with the problem. Ship the answer.",
+    body: "I work as an independent developer while studying data science. Most of my clients found me through someone I'd already built for.",
+    steps: [
+      {
+        title: "Understand",
+        text: "Who it's for, what it has to do, and what would make it fail. I map the flow before I write any code.",
+      },
+      {
+        title: "Build",
+        text: "Clean architecture across frontend and backend, tested against a real database, so it stays fast and easy to change.",
+      },
+      {
+        title: "Ship",
+        text: "Hosting, domains, data and monitoring set up properly. After launch I keep it running and growing.",
+      },
+    ],
+  },
+  beyond: {
+    eyebrow: "Beyond the screen",
+    title: "The people and places around the work.",
+    body: "Hackathons, events, launches and the moments in between.",
+    cta: "Open the gallery",
+    empty: "Photos from hackathons and events are on their way.",
+  },
   contact: {
-    eyebrow: { num: "05", label: "Contact" },
-    heading: { lines: ["Let's make", "something"], accent: "matter." },
-    body: "Open to client work, collaborations and interesting problems. Tell me what you're building.",
+    eyebrow: "Contact",
+    title: "Have something in mind?",
+    body: "Open to freelance projects, collaborations and interesting problems. Tell me what you're building.",
     email: EMAIL,
-    cta: "Get in touch",
+    cta: "Email me",
     socials: [
       { label: "LinkedIn", href: SOCIAL.linkedin },
       { label: "GitHub", href: SOCIAL.github },
@@ -224,9 +236,28 @@ const en: Content = {
     ],
   },
   footer: {
-    name: "ABDULLAH BOKHARY",
+    name: "Abdullah Bokhary",
     credit: "© 2026 · Designed and built by me",
     backToTop: "Back to top",
+  },
+  gallery: {
+    eyebrow: "Gallery",
+    title: "Outside the code.",
+    intro: "Hackathons, events and the moments around the work: the people and places behind the projects.",
+    all: "All",
+    categories: {
+      hackathons: "Hackathons",
+      events: "Events",
+      projects: "Projects",
+      "behind-the-scenes": "Behind the scenes",
+    },
+    empty: "The first photos are on their way.",
+    emptyFilter: "Nothing in this category yet.",
+    relatedProject: "Related project",
+    backHome: "Back to home",
+    count: "{n} photos",
+    viewer: { label: "Photo viewer", prev: "Previous photo", next: "Next photo", close: "Close", of: "of" },
+    moreTitle: "See the projects",
   },
 };
 

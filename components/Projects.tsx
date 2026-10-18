@@ -1,178 +1,127 @@
 import Image from "next/image";
-import type { CSSProperties } from "react";
 import type { Content, Project } from "@/content/types";
 import DetailSheet from "./DetailSheet";
-import { CircleLink, Display, Eyebrow, GitHubIcon, Roll } from "./primitives";
+import { Button, GitHubIcon, Roll, SectionHead, reveal } from "./primitives";
 
-type Props = { work: Content["work"]; arrows: Content["arrows"]; ui: Content["ui"] };
+type Props = { work: Content["work"]; arrows: Content["arrows"]; ui: Content["ui"]; locale: string };
 
 const sheetId = (p: Project) => `project-${p.id}`;
 
-function ProjectLinks({ p, arrows }: { p: Project; arrows: Content["arrows"] }) {
+function Links({ p, arrows, ui, details = true }: { p: Project; arrows: Content["arrows"]; ui: Content["ui"]; details?: boolean }) {
   return (
-    <>
-      <CircleLink href={p.primary.href} arrow={arrows.external} kind="external" size="sm" external>
+    <div className="pcard__links">
+      <Button href={p.primary.href} arrow={arrows.external} external variant="primary" className="btn--sm">
         {p.primary.label}
-      </CircleLink>
+      </Button>
       {p.secondary && (
-        <a className="text-link" href={p.secondary.href} target="_blank" rel="noopener">
-          {p.secondary.label} <span aria-hidden="true">{arrows.external}</span>
-        </a>
+        <Button href={p.secondary.href} arrow={arrows.external} external variant="ghost" className="btn--sm">
+          {p.secondary.label}
+        </Button>
       )}
-    </>
-  );
-}
-
-function Label({ p, badge }: { p: Project; badge: string }) {
-  return (
-    <div className="pinfo__label">
-      {p.label}
-      {p.featured && <span className="badge">{badge}</span>}
+      {details && (
+        <button type="button" className="text-btn" data-dialog-open={sheetId(p)}>
+          {ui.details}
+          <span className="text-btn__plus" aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }
 
-function DetailsButton({ p, label }: { p: Project; label: string }) {
+/** A desktop screenshot with the phone version resting on its corner. */
+function Media({ p, ui, featured }: { p: Project; ui: Content["ui"]; featured: boolean }) {
   return (
-    <button type="button" className="chip-btn" data-dialog-open={sheetId(p)}>
-      {label}
-      <span className="chip-btn__plus" aria-hidden="true" />
+    <button
+      type="button"
+      className="pmedia"
+      data-dialog-open={sheetId(p)}
+      aria-label={`${ui.openDetails}: ${p.title}`}
+    >
+      <span className="pmedia__screen">
+        <Image
+          src={p.image.src}
+          alt={p.image.alt}
+          width={p.image.width}
+          height={p.image.height}
+          sizes={featured ? "(min-width: 960px) 640px, 92vw" : "(min-width: 960px) 460px, 92vw"}
+        />
+      </span>
+      <span className="pmedia__phone">
+        <Image src={p.phone.src} alt={p.phone.alt} width={p.phone.width} height={p.phone.height} sizes="(min-width: 960px) 180px, 32vw" />
+      </span>
     </button>
   );
 }
 
-export default function Projects({ work, arrows, ui }: Props) {
-  const featured = work.projects.find((p) => p.featured) ?? work.projects[0];
-  const rest = work.projects.filter((p) => p !== featured);
-
+export default function Projects({ work, arrows, ui, locale }: Props) {
+  const num = (i: number) => (i + 1).toLocaleString(locale === "ar" ? "ar-SA" : "en", { minimumIntegerDigits: 2 });
   return (
-    <section id="work" className="work">
-      <div className="work__inner">
-        <div className="stack-col">
-          <Eyebrow {...work.eyebrow} reveal={0} />
-          <Display heading={work.heading} reveal={1} />
-        </div>
+    <section id="work" className="section work" aria-labelledby="work-title">
+      <SectionHead id="work-title" eyebrow={work.eyebrow} title={work.title} body={work.body} />
 
-        {/* Featured: the one project that gets the laptop. */}
-        <div className="featured">
-          <div className="pinfo featured__info" data-anim="rise" style={{ "--d": "0.1s" } as CSSProperties}>
-            <Label p={featured} badge={work.featuredBadge} />
-            <h3 className="pinfo__title">{featured.title}</h3>
-            <p className="pinfo__desc">{featured.description}</p>
-            {featured.stats && (
-              <dl className="stats">
-                {featured.stats.map((s) => (
-                  <div key={s.label} className="stats__item">
-                    <dt>{s.value}</dt>
-                    <dd>{s.label}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-            <div className="tech" dir="ltr">
-              {featured.tech.join(" · ")}
-            </div>
-            <div className="pinfo__links">
-              <ProjectLinks p={featured} arrows={arrows} />
-              <DetailsButton p={featured} label={ui.details} />
-            </div>
-          </div>
-
-          <div className="laptop-wrap" data-anim="screen">
-            <div className="laptop" data-laptop>
-              <div className="laptop__lid">
-                <div className="laptop__screen">
-                  <button
-                    type="button"
-                    className="pshot"
-                    data-dialog-open={sheetId(featured)}
-                    aria-label={`${ui.openDetails}: ${featured.title}`}
-                    style={{ "--tint": featured.tint } as CSSProperties}
-                  >
-                    <Image
-                      src={featured.image.src}
-                      alt=""
-                      width={featured.image.width}
-                      height={featured.image.height}
-                      sizes="(min-width: 900px) 700px, 100vw"
-                      className="pshot__img"
-                    />
-                    <span className="pshot__hint" aria-hidden="true">
-                      {ui.details} +
-                    </span>
-                  </button>
-                  <div className="laptop__glare" aria-hidden="true" />
-                </div>
-              </div>
-              <div className="laptop__base" aria-hidden="true">
-                <div className="laptop__notch" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/*
-        The rest: a pinned horizontal sequence. Scrolling down moves the cards across,
-        synchronised with the scroll; the page carries on vertically afterwards.
-      */}
-      <div className="hrail" data-hrail aria-label={work.moreTitle}>
-        <div className="hrail__sticky">
-          <div className="hrail__head">
-            <h3 className="more__title" data-anim="rise">
-              {work.moreTitle}
-            </h3>
-            <div className="hrail__meter" aria-hidden="true">
-              <span className="hrail__count" dir="ltr">
-                <span data-hrail-index>01</span> / {String(rest.length).padStart(2, "0")}
-              </span>
-              <span className="hrail__bar">
-                <span data-hrail-bar />
-              </span>
-            </div>
-          </div>
-          <div className="hrail__track" data-hrail-track>
-            {rest.map((p) => (
-              <article key={p.id} className="pcard" data-pcard>
+      <div className="timeline" data-timeline>
+        <span className="timeline__rail" aria-hidden="true">
+          <span className="timeline__fill" data-timeline-fill />
+        </span>
+        <ol className="timeline__list">
+        {work.projects.map((p, i) => {
+          const featured = !!p.featured;
+          return (
+            <li key={p.id} id={`p-${p.id}`} className={`tl ${featured ? "tl--featured" : ""}`}>
+              <span className="tl__node" aria-hidden="true" />
+              <p className="tl__index" aria-hidden="true">
+                {num(i)}
+              </p>
+              <article className="pcard" data-glow {...reveal(0)}>
+                <Media p={p} ui={ui} featured={featured} />
                 <div className="pcard__body">
-                  <button
-                    type="button"
-                    className="pcard__open"
-                    data-dialog-open={sheetId(p)}
-                    aria-label={`${ui.openDetails}: ${p.title}`}
-                  />
-                  <div className="pcard__media" style={{ "--tint": p.tint } as CSSProperties}>
-                    <Image
-                      src={p.image.src}
-                      alt={p.image.alt}
-                      width={p.image.width}
-                      height={p.image.height}
-                      sizes="(min-width: 900px) 460px, 82vw"
-                      draggable={false}
-                    />
-                  </div>
-                  <div className="pcard__text">
-                    <Label p={p} badge={work.featuredBadge} />
-                    <h4 className="pcard__title">{p.title}</h4>
-                    <p className="pcard__desc">{p.description}</p>
-                    <div className="tech" dir="ltr">
-                      {p.tech.join(" · ")}
-                    </div>
-                  </div>
-                  <div className="pinfo__links pcard__links">
-                    <ProjectLinks p={p} arrows={arrows} />
-                    <DetailsButton p={p} label={ui.details} />
-                  </div>
+                  <p className="pcard__label">
+                    <span>{p.label}</span>
+                    {featured && <span className="badge">{work.featuredBadge}</span>}
+                  </p>
+                  <h3 className="pcard__title">{p.title}</h3>
+                  <p className="pcard__desc">{p.description}</p>
+
+                  {p.credits && (
+                    <dl className="credits">
+                      <div className="credits__mine">
+                        <dt>{ui.mine}</dt>
+                        <dd>{p.credits.mine}</dd>
+                      </div>
+                      <div>
+                        <dt>{ui.theirs}</dt>
+                        <dd>{p.credits.theirs}</dd>
+                      </div>
+                    </dl>
+                  )}
+
+                  {p.stats && (
+                    <dl className="stats">
+                      {p.stats.map((s) => (
+                        <div key={s.label} className="stats__item">
+                          <dt>{s.value}</dt>
+                          <dd>{s.label}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+
+                  <ul className="chips" dir="ltr" aria-label={ui.stack}>
+                    {p.tech.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ul>
+                  <Links p={p} arrows={arrows} ui={ui} />
                 </div>
               </article>
-            ))}
-          </div>
-        </div>
+            </li>
+          );
+        })}
+        </ol>
       </div>
 
-      <div className="work__foot">
-        <a className="gh-btn" href={work.allWork.href} target="_blank" rel="noopener" data-anim="rise">
+      <div className="work__foot" {...reveal(0)}>
+        <a className="gh-btn" href={work.allWork.href} target="_blank" rel="noopener">
           <GitHubIcon className="gh-btn__icon" />
           <Roll>{work.allWork.label}</Roll>
           <span className="gh-btn__handle" dir="ltr">
@@ -183,11 +132,11 @@ export default function Projects({ work, arrows, ui }: Props) {
 
       {work.projects.map((p) => (
         <DetailSheet key={p.id} id={sheetId(p)} label={p.title} closeLabel={ui.close}>
-          <figure className="sheet__media sheet__media--screen">
+          <figure className="sheet__media">
             <Image src={p.image.src} alt={p.image.alt} width={p.image.width} height={p.image.height} sizes="(min-width: 900px) 820px, 100vw" />
           </figure>
           <div className="sheet__body">
-            <Label p={p} badge={work.featuredBadge} />
+            <p className="pcard__label">{p.label}</p>
             <h3 className="sheet__title">{p.title}</h3>
             {p.role && (
               <p className="sheet__role">
@@ -212,9 +161,7 @@ export default function Projects({ work, arrows, ui }: Props) {
                 <li key={t}>{t}</li>
               ))}
             </ul>
-            <div className="sheet__links">
-              <ProjectLinks p={p} arrows={arrows} />
-            </div>
+            <Links p={p} arrows={arrows} ui={ui} details={false} />
           </div>
         </DetailSheet>
       ))}

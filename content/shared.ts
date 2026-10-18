@@ -37,7 +37,37 @@ export const IMAGES = {
   ine: { src: withBase("/certs/ine-ecppt.png"), width: 1262, height: 978 },
 };
 
-export const TINTS = ["rgba(52,230,190,0.30)", "rgba(64,180,240,0.30)", "rgba(110,130,255,0.30)", "rgba(160,90,255,0.30)"];
+/** Phone-sized screenshots and square certificate crops, for the hero mosaic and project cards. */
+export const SHOTS = {
+  scinvitesInvite: { src: withBase("/shots/scinvites-invite.webp"), width: 350, height: 720 },
+  scinvitesCard: { src: withBase("/shots/scinvites-card.webp"), width: 232, height: 385 },
+  pairingBoard: { src: withBase("/shots/pairing-board-phone.webp"), width: 720, height: 1329 },
+  eloria: { src: withBase("/shots/eloria-phone.webp"), width: 720, height: 1126 },
+  maherOs: { src: withBase("/shots/maher-os-phone.webp"), width: 720, height: 1558 },
+  maherOsChooser: { src: withBase("/shots/maher-os-chooser.webp"), width: 720, height: 1415 },
+  ibm: { src: withBase("/shots/ibm-square.webp"), width: 640, height: 640 },
+  ine: { src: withBase("/shots/ine-square.webp"), width: 640, height: 640 },
+};
+
+/** The words on the moving tapes: tools I actually use in the projects above. */
+export const STACK = [
+  "Python",
+  "JavaScript",
+  "TypeScript",
+  "React",
+  "Next.js",
+  "Node.js",
+  "PostgreSQL",
+  "Supabase",
+  "Vercel",
+  "Cloudflare Workers",
+  "Docker",
+  "Git",
+  "Playwright",
+  "SQL",
+  "Flask",
+  "Vite",
+];
 
 /** Official course titles, kept in English in both languages. */
 export const IBM_COURSES = [

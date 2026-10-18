@@ -6,3 +6,6 @@ export const withBase = (path: string) => `${BASE_PATH}${path}`;
 
 /** URL of a language's home page. */
 export const localeHref = (locale: string) => withBase(`/${locale}/`);
+
+/** URL of a language's gallery page. */
+export const galleryHref = (locale: string) => withBase(`/${locale}/gallery/`);

@@ -1,0 +1,57 @@
+import Image from "next/image";
+import type { Content, Locale } from "@/content/types";
+import { featuredItem, formatDate, galleryItems, imageSrc } from "@/lib/gallery";
+import { galleryHref } from "@/lib/paths";
+import { Button, SectionHead, reveal } from "./primitives";
+
+/** "Beyond the screen": the gallery's featured photograph, a couple of others, and the way in. */
+export default function Beyond({ c }: { c: Content }) {
+  const { beyond, arrows, gallery } = c;
+  const locale = c.locale as Locale;
+  const lead = featuredItem();
+  const others = galleryItems.filter((i) => i !== lead).slice(0, 2);
+  const href = galleryHref(locale);
+
+  return (
+    <section id="beyond" className="section beyond" aria-labelledby="beyond-title">
+      <SectionHead id="beyond-title" eyebrow={beyond.eyebrow} title={beyond.title} body={beyond.body}>
+        <div className="shead__action" {...reveal(3)}>
+          <Button href={href} arrow={arrows.forward}>
+            {beyond.cta}
+          </Button>
+        </div>
+      </SectionHead>
+
+      {lead ? (
+        <div className={`beyond__grid beyond__grid--${others.length}`}>
+          {[lead, ...others].map((item, i) => (
+            <a key={item.id} href={href} className={`photo ${i === 0 ? "photo--lead" : ""}`} {...reveal(i)}>
+              <Image
+                src={imageSrc(item)}
+                alt={item.caption[locale]}
+                width={item.width}
+                height={item.height}
+                sizes={i === 0 ? "(min-width: 960px) 760px, 100vw" : "(min-width: 960px) 380px, 50vw"}
+              />
+              <span className="photo__cap">
+                <span className="photo__meta">
+                  {gallery.categories[item.category]} · {formatDate(item.date, locale)}
+                </span>
+                <span className="photo__title">{item.caption[locale]}</span>
+              </span>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <a href={href} className="beyond__empty" {...reveal(0)}>
+          <span className="beyond__frames" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className="beyond__empty-text">{beyond.empty}</span>
+        </a>
+      )}
+    </section>
+  );
+}

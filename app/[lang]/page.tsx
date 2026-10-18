@@ -1,14 +1,15 @@
 import { notFound } from "next/navigation";
 import About from "@/components/About";
+import Beyond from "@/components/Beyond";
 import Certificates from "@/components/Certificates";
 import Contact from "@/components/Contact";
 import DetailController from "@/components/DetailController";
 import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
-import Interactions from "@/components/Interactions";
-import MotionEngine from "@/components/MotionEngine";
+import Motion from "@/components/Motion";
 import Nav from "@/components/Nav";
 import Projects from "@/components/Projects";
+import Tape from "@/components/Tape";
 import { getContent, hasLocale } from "@/content";
 
 export default async function Page({ params }: PageProps<"/[lang]">) {
@@ -17,20 +18,20 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
   const c = getContent(lang);
 
   return (
-    <div className="root" data-root>
-      <canvas className="sky" data-sky aria-hidden="true" />
-      <Nav nav={c.nav} />
+    <>
+      <Nav nav={c.nav} locale={lang} page="home" />
       <main>
-        <Hero hero={c.hero} arrows={c.arrows} />
-        <About about={c.about} />
-        <Projects work={c.work} arrows={c.arrows} ui={c.ui} />
+        <Hero c={c} />
+        <Tape label={c.tape.label} />
+        <Projects work={c.work} arrows={c.arrows} ui={c.ui} locale={lang} />
+        <About about={c.about} locale={lang} />
+        <Beyond c={c} />
         <Certificates certificates={c.certificates} arrows={c.arrows} ui={c.ui} />
         <Contact contact={c.contact} arrows={c.arrows} />
       </main>
-      <Footer footer={c.footer} nav={c.nav} arrows={c.arrows} />
-      <MotionEngine />
+      <Footer c={c} page="home" />
+      <Motion />
       <DetailController />
-      <Interactions />
-    </div>
+    </>
   );
 }

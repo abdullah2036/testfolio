@@ -1,46 +1,53 @@
 # Abdullah Bokhary — portfolio
 
-Next.js 16 (App Router) + TypeScript, built from the design handoff in `../Portfolio v2.dc.html`.
+Next.js 16 (App Router) + TypeScript. English (LTR) and Arabic (RTL), each written natively.
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000 → redirects to /en or /ar
+npm run dev      # http://localhost:3000 → forwards to /en/ or /ar/
 npm run build
 ```
 
-## Two languages, two pages
+## Adding gallery photos (the studio)
 
-`/en` (LTR) and `/ar` (RTL) are both prerendered. `/` picks one from the `lang` cookie (set by the language switch) or `Accept-Language` (`proxy.ts`).
+1. `npm run dev`, then open **http://localhost:3000/studio/**.
+2. Drop photos onto the page (or click the drop area). Each is rotated upright, resized to at most 2400 px and saved as WebP in `public/gallery/`. iPhone HEIC photos need exporting as JPG first.
+3. For each photo: an English and an Arabic caption, a category (Hackathons, Events, Projects, Behind the scenes), the date, optionally a location and a related project. Tick **Featured** on the one photo that should lead the gallery and appear on the home page. Drag cards (or use ↑ ↓) to set the order.
+4. **Save changes**. This writes `content/gallery.json`. Removed photos go to `.gallery-trash/` (git-ignored), not straight to deletion.
+5. Preview at `/en/gallery/` and `/ar/gallery/`, then commit `content/gallery.json` and `public/gallery/` and deploy.
 
-- **Copy** lives in `content/en.ts` and `content/ar.ts`. They are written separately, not as a key-by-key translation, and share links/images through `content/shared.ts`.
-- **Layout** mirrors through logical CSS properties and `[dir="rtl"]` rules in `app/globals.css`. Arabic gets its own type settings: Alexandria, no negative tracking, no uppercase, wider word spacing, taller line height, and a right-to-left accent gradient. English uses Bricolage Grotesque with DM Mono for labels.
-- **3D** mirrors in `components/MotionEngine.tsx` (`mirror = -1`): the layer stack, the laptop tilt, certificate reveals, and the contact arc all flip.
+The studio and its API (`app/(root)/studio/page.dev.tsx`, `app/(root)/api/gallery/route.dev.ts`) only exist under `next dev`. `pageExtensions` in `next.config.ts` leaves `*.dev.tsx` files out of production builds, so the live site has no way to change the gallery.
+
+## Two languages
+
+`/en/` and `/ar/` (and `/en/gallery/`, `/ar/gallery/`) are all prerendered. `/` and `/gallery/` forward to the visitor's language: the `lang` cookie set by the language switch, then the browser's languages, then English.
+
+- **Copy** lives in `content/en.ts` and `content/ar.ts`, written separately rather than translated key by key. Links, images and the stack words are shared through `content/shared.ts`.
+- **Layout** mirrors through logical CSS properties and `[dir="rtl"]` rules in `app/globals.css`. Arabic uses IBM Plex Sans Arabic with its own line heights and no letter-spacing; English uses Geist, with Geist Mono for metadata.
 
 ## Where things are
 
 | Path | What |
 |---|---|
-| `app/[lang]/layout.tsx` | `<html lang dir>`, fonts, metadata + hreflang |
-| `app/[lang]/page.tsx` | Section order |
-| `components/*.tsx` | One file per section |
-| `components/MotionEngine.tsx` | The single rAF loop: smoothed scroll, sticky-section effects, reveals and the contact arc |
-| `lib/blackhole.ts` | The sky: a ray-traced Schwarzschild black hole. A lensing map is baked once on the GPU; the accretion disk is re-shaded every frame with Keplerian flow, then recedes into background atmosphere on scroll |
-| `lib/ribbon.ts` | The contact section's arc ribbon (the design prototype's shader) |
-| `components/Interactions.tsx` | Entrance reveals (`data-anim`: lines, wipe, rise, screen) and magnetic CTAs |
-| `components/DetailSheet.tsx`, `DetailController.tsx` | Glass detail cards (`<dialog>`) for projects and certificates |
-| `public/projects/` | Laptop screenshots (16:10 crops from the top) |
-| `public/certs/` | Certificate images |
+| `app/[lang]/page.tsx` | Home: section order |
+| `app/[lang]/gallery/page.tsx` | Gallery page |
+| `components/Hero.tsx` | Headline and the looping mosaic of phone screenshots and certificates (each tile links to its card) |
+| `components/Tape.tsx` | The crossed "caution tape" of tools |
+| `components/Projects.tsx`, `Certificates.tsx` | Timelines; SCinvites first as the case study |
+| `components/About.tsx`, `Beyond.tsx`, `Contact.tsx` | Understand / Build / Ship, the gallery preview, contact |
+| `components/GalleryView.tsx` | Filters, featured photo, masonry, and the photo viewer (keyboard, swipe) |
+| `components/Motion.tsx` | Reveals, timeline progress, card glow, nav state. CSS does the motion; reduced motion is respected |
+| `components/DetailSheet.tsx`, `DetailController.tsx` | Detail dialogs for projects and certificates |
+| `lib/gallery.ts` | Gallery item type and helpers |
+| `public/shots/` | Phone screenshots and square certificate crops for the mosaic |
+| `public/projects/`, `public/certs/` | Desktop screenshots, certificate images |
 
-Set `NEXT_PUBLIC_SITE_URL` in production so canonical and hreflang URLs are absolute.
+## Deploying
 
-## GitHub Pages
+**Vercel**: import the repo; the defaults work. Set `NEXT_PUBLIC_SITE_URL` (e.g. `https://your-domain.com`) so canonical and hreflang URLs are absolute.
 
-Every push to `main` builds a static export and publishes it to the `gh-pages` branch (`.github/workflows/pages.yml`), served at https://abdullah2036.github.io/testfolio/.
-
-To build the same thing locally (bash):
+**GitHub Pages** still works: every push to `main` runs `.github/workflows/pages.yml`, which builds a static export with the `/testfolio` base path and publishes it to the `gh-pages` branch. Locally:
 
 ```bash
 GITHUB_PAGES=true NEXT_PUBLIC_SITE_URL=https://abdullah2036.github.io/testfolio npm run build   # → out/
 ```
-
-In that mode the app is exported with the `/testfolio` base path; `withBase()` in `lib/paths.ts` prefixes image and file URLs, and `/` forwards to `/en/` or `/ar/` in the browser (`app/(root)/page.tsx`).
