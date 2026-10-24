@@ -74,12 +74,17 @@ export type Content = {
     switchLabel: string;
     switchAria: string;
     switchLocale: Locale;
+    /** The local-time readout: a short place label and its spoken description. */
+    clock: { label: string; aria: string };
   };
   hero: {
     eyebrow: string;
     /** The headline, then the words that carry the accent gradient. */
     title: string;
     accent: string;
+    /** The name line under the headline, followed by roles that take turns beside it. */
+    name: string;
+    roles: string[];
     lede: string;
     primary: string;
     secondary: string;

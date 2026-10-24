@@ -7,7 +7,7 @@ const en: Content = {
   meta: {
     title: "Abdullah Bokhary",
     description:
-      "Independent software developer and data science student. I build software that solves real problems, from the first conversation to production",
+      "Software developer and data science student. I design, build and launch web products with you, from the first idea to production, and keep them running as they grow",
     galleryTitle: "Abdullah Bokhary",
     galleryDescription: "Hackathons and conferences I've attended",
   },
@@ -38,14 +38,17 @@ const en: Content = {
     switchLabel: "عربي",
     switchAria: "اقرأ الموقع بالعربية",
     switchLocale: "ar",
+    clock: { label: "KSA", aria: "Local time in Saudi Arabia" },
   },
   hero: {
-    eyebrow: "Independent developer · Data science student",
+    eyebrow: "Software developer · Data science student",
     title: "I build software that solves",
     accent: "real problems",
-    lede: "I'm Abdullah Bokhary, a freelance developer and data science student. I take products from the first conversation to production, and keep them running after launch",
+    name: "Abdullah Bokhary",
+    roles: ["developer", "product developer", "data science student"],
+    lede: "You bring the idea. I turn it into a product people use, from the first conversation to launch, and stay on to keep it running as it grows",
     primary: "Explore projects",
-    secondary: "Visit the gallery",
+    secondary: "Start a project",
     mosaicLabel: "Screens from my projects, and my certificates",
   },
   tape: { label: "Development stack" },
@@ -203,11 +206,11 @@ const en: Content = {
     eyebrow: "About",
     title: "Start with the problem,",
     accent: "ship the answer",
-    body: "I work as an independent developer while studying data science. Every project goes through the same three steps",
+    body: "A new product or one that's ready to grow, every project I take on goes through the same three steps",
     steps: [
       {
         title: "Understand",
-        text: "Who it's for, what it has to do, and what would make it fail. I map the flow before I write any code",
+        text: "Who it's for, what it has to do, and what could make it fail. We map the flow together before any code is written",
       },
       {
         title: "Build",
@@ -215,7 +218,7 @@ const en: Content = {
       },
       {
         title: "Ship",
-        text: "Hosting, domains, data and monitoring set up properly. After launch I keep it running and growing",
+        text: "Hosting, domains, data and monitoring set up properly. After launch I stay on, so it keeps running and growing",
       },
     ],
   },
@@ -231,7 +234,7 @@ const en: Content = {
     eyebrow: "Contact",
     title: "Have something",
     accent: "in mind?",
-    body: "Open to freelance projects, collaborations and interesting problems. Tell me what you're building",
+    body: "A product to build, a system to improve or an idea to test: I'd like to hear about it. Tell me what you're working on",
     email: EMAIL,
     cta: "Email me",
     socials: [

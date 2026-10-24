@@ -76,20 +76,21 @@ export default function Motion() {
       fill: el.querySelector<HTMLElement>("[data-timeline-fill]"),
       items: [...el.querySelectorAll<HTMLElement>(".tl")],
     }));
-    // Phone project row. While "linked" it follows the vertical scroll (no snapping, so it
-    // moves freely); the moment it's touched it becomes an ordinary swipeable row.
+    // Phone project row. Its group is tall and the row is pinned inside it (CSS sticky), so the
+    // vertical scroll drives it sideways from the first card to the last: it holds briefly on
+    // each card and glides between them. Nothing is hijacked; it simply follows the page.
     const phone = window.matchMedia("(max-width: 759px)");
     const rtl = root.dir === "rtl";
     const rails = [...document.querySelectorAll<HTMLElement>("[data-prail]")].map((el) => ({
       el,
+      group: el.closest<HTMLElement>(".tl-group"),
       bar: el.parentElement?.querySelector<HTMLElement>("[data-prail-bar]") ?? null,
       cards: [...el.children] as HTMLElement[],
-      linked: true,
       x: 0,
     }));
-    const release = (r: (typeof rails)[number]) => {
-      r.linked = false;
-      r.el.style.scrollSnapType = "";
+    const hold = (t: number) => {
+      const s = Math.min(1, Math.max(0, (t - 0.18) / 0.64));
+      return s * s * (3 - 2 * s);
     };
     const paintRail = (r: (typeof rails)[number]) => {
       const max = r.el.scrollWidth - r.el.clientWidth;
@@ -125,27 +126,25 @@ export default function Motion() {
       let again = false;
       const vh = window.innerHeight;
       for (const r of rails) {
-        if (!phone.matches) {
+        if (!phone.matches || !r.group) {
           clearRail(r);
           continue;
         }
-        const box = r.el.getBoundingClientRect();
+        const g = r.group.getBoundingClientRect();
         const max = r.el.scrollWidth - r.el.clientWidth;
-        if (box.bottom < 0 || box.top > vh) {
-          // Off screen: next time it comes into view, it follows the scroll again.
-          if (!r.linked) {
-            r.linked = true;
-            r.x = Math.abs(r.el.scrollLeft);
-          }
-          continue;
-        }
-        if (r.linked && !reduced && max > 0) {
-          const p = Math.min(1, Math.max(0, (vh * 0.8 - box.top) / (vh * 0.6)));
-          const target = p * max;
-          r.x += (target - r.x) * 0.2;
+        if (g.bottom < 0 || g.top > vh) continue;
+        if (max > 0) {
+          // How far through the pinned stretch we are, 0 at the first card, 1 at the last.
+          const navH = parseFloat(getComputedStyle(root).getPropertyValue("--nav-h")) || 64;
+          const travel = Math.max(1, g.height - (vh - navH));
+          const p = Math.min(1, Math.max(0, (navH - g.top) / travel));
+          const n = r.cards.length;
+          const f = p * (n - 1), k = Math.min(n - 2, Math.floor(f));
+          const stop = n > 1 ? (reduced ? Math.round(f) : k + hold(f - k)) / (n - 1) : 0;
+          const target = stop * max;
+          r.x = reduced ? target : r.x + (target - r.x) * 0.22;
           if (Math.abs(target - r.x) < 0.5) r.x = target;
           else again = true;
-          r.el.style.scrollSnapType = "none";
           r.el.scrollLeft = rtl ? -r.x : r.x;
         }
         paintRail(r);
@@ -167,23 +166,6 @@ export default function Motion() {
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
-    const offs: (() => void)[] = [];
-    for (const r of rails) {
-      const grab = () => release(r);
-      const moved = () => {
-        if (!r.linked) onScroll();
-      };
-      r.el.addEventListener("touchstart", grab, { passive: true });
-      r.el.addEventListener("pointerdown", grab, { passive: true });
-      r.el.addEventListener("wheel", grab, { passive: true });
-      r.el.addEventListener("scroll", moved, { passive: true });
-      offs.push(() => {
-        r.el.removeEventListener("touchstart", grab);
-        r.el.removeEventListener("pointerdown", grab);
-        r.el.removeEventListener("wheel", grab);
-        r.el.removeEventListener("scroll", moved);
-      });
-    }
 
     // Pointer light on cards.
     let lit: HTMLElement | null = null;
@@ -207,7 +189,6 @@ export default function Motion() {
       cancelAnimationFrame(frame);
       window.clearTimeout(loadCap);
       window.removeEventListener("load", finishLoading);
-      offs.forEach((off) => off());
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       document.removeEventListener("pointermove", onMove);

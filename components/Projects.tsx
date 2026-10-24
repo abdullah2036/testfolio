@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import type { Content, Project } from "@/content/types";
 import DetailSheet from "./DetailSheet";
 import { Button, GitHubIcon, Roll, SectionHead, reveal } from "./primitives";
@@ -122,15 +123,17 @@ export default function Projects({ work, arrows, ui, locale }: Props) {
         </span>
         <ol className="timeline__list">
           {lead.map((p) => item(p, work.projects.indexOf(p)))}
-          {/* On phones the rest become a sideways row that glides along as you scroll
-              (and can be swiped); on wider screens they continue the timeline. */}
-          <li className="tl-group">
-            <ol className="prail" data-prail>
-              {rest.map((p) => item(p, work.projects.indexOf(p)))}
-            </ol>
-            <span className="prail__meter" aria-hidden="true">
-              <span data-prail-bar />
-            </span>
+          {/* On phones the rest become a sideways row, pinned while the page scrolls it from
+              the first card to the last; on wider screens they continue the timeline. */}
+          <li className="tl-group" style={{ "--n": rest.length } as CSSProperties}>
+            <div className="prail__pin">
+              <ol className="prail" data-prail>
+                {rest.map((p) => item(p, work.projects.indexOf(p)))}
+              </ol>
+              <span className="prail__meter" aria-hidden="true">
+                <span data-prail-bar />
+              </span>
+            </div>
           </li>
         </ol>
       </div>
