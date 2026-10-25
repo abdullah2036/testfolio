@@ -7,7 +7,7 @@ const en: Content = {
   meta: {
     title: "Abdullah Bokhary",
     description:
-      "Software developer and data science student. I design and build web products and work closely with the people behind them",
+      "Software developer and data science student. I design and develop web applications, turning ideas into functional digital products",
     galleryTitle: "Abdullah Bokhary",
     galleryDescription: "Hackathons and conferences I've attended",
   },
@@ -46,7 +46,7 @@ const en: Content = {
     accent: "real problems",
     name: "Abdullah Bokhary",
     roles: ["developer", "product developer", "data science student"],
-    lede: "I design and build web products, and I enjoy working closely with the people behind them. Have an idea in mind? Let's talk it through",
+    lede: "I design and develop web applications, focusing on turning ideas into functional digital products. Have an idea you'd like to build? Let's talk",
     primary: "Explore projects",
     secondary: "Start a project",
     mosaicLabel: "Screens from my projects, and my certificates",
