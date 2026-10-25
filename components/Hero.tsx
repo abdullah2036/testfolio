@@ -22,7 +22,8 @@ export default function Hero({ c }: { c: Content }) {
           {hero.title} <span className="accent">{hero.accent}</span>
         </h1>
         <p className="hero__role" {...reveal(2)}>
-          {hero.name} <span aria-hidden="true">&mdash;</span> <RoleMorph roles={hero.roles} scramble={c.locale !== "ar"} />
+          {hero.name}
+          {c.dir === "rtl" ? "،" : ","} <RoleMorph roles={hero.roles} scramble={c.locale !== "ar"} />
         </p>
         <p className="hero__lede" {...reveal(3)}>
           {hero.lede}

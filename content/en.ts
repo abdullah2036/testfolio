@@ -7,7 +7,7 @@ const en: Content = {
   meta: {
     title: "Abdullah Bokhary",
     description:
-      "Software developer and data science student. I design, build and launch web products with you, from the first idea to production, and keep them running as they grow",
+      "Software developer and data science student. I design and build web products and work closely with the people behind them",
     galleryTitle: "Abdullah Bokhary",
     galleryDescription: "Hackathons and conferences I've attended",
   },
@@ -46,7 +46,7 @@ const en: Content = {
     accent: "real problems",
     name: "Abdullah Bokhary",
     roles: ["developer", "product developer", "data science student"],
-    lede: "You bring the idea. I turn it into a product people use, from the first conversation to launch, and stay on to keep it running as it grows",
+    lede: "I design and build web products, and I enjoy working closely with the people behind them. Have an idea in mind? Let's talk it through",
     primary: "Explore projects",
     secondary: "Start a project",
     mosaicLabel: "Screens from my projects, and my certificates",
@@ -218,7 +218,7 @@ const en: Content = {
       },
       {
         title: "Ship",
-        text: "Hosting, domains, data and monitoring set up properly. After launch I stay on, so it keeps running and growing",
+        text: "Hosting, domains, data and monitoring set up properly, so it's ready for the people who will use it",
       },
     ],
   },
