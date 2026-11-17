@@ -1,5 +1,6 @@
 import type { Content } from "./types";
-import { EMAIL, GITHUB_HANDLE, IBM_COURSES, IMAGES, LINKS, SHOTS, SOCIAL } from "./shared";
+import { galleryHref } from "@/lib/paths";
+import { EMAIL, FIRE_GUARDIAN_SCREENS, GITHUB_HANDLE, IBM_COURSES, IMAGES, LINKS, SHOTS, SOCIAL } from "./shared";
 
 const en: Content = {
   locale: "en",
@@ -23,6 +24,7 @@ const en: Content = {
     mine: "My part",
     theirs: "Collaborators",
     view: "View",
+    screens: "Screens",
   },
   nav: {
     wordmark: "Abdullah Bokhary",
@@ -56,14 +58,62 @@ const en: Content = {
     eyebrow: "Selected work",
     title: "Software people",
     accent: "actually use",
-    body: "A timeline of shipped work, led by a production platform with verified load-test results",
+    body: "A timeline of shipped work, led by a NASA Space Apps wildfire platform and a production system with verified load-test results",
     featuredBadge: "Case study",
     caseStudy: "Featured case study",
     allWork: { label: "View all my work", handle: `@${GITHUB_HANDLE}`, href: SOCIAL.githubRepos },
     projects: [
       {
+        id: "fireguardian",
+        label: "01 · Satellite data platform",
+        featured: true,
+        badge: "NASA Space Apps 2026",
+        title: "Fire Guardian",
+        description:
+          "Live wildfire monitoring for Saudi Arabia from NASA satellites. It joins 25 years of MODIS and VIIRS fire data into one consistent record, then tells real fires apart from gas flares and factories, live on a map",
+        tech: ["React", "TypeScript", "Python", "MapLibre GL", "Node.js", "scikit-learn", "NASA FIRMS"],
+        stats: [
+          { value: "629k", label: "NASA detections cleaned into one record, 2001 to today" },
+          { value: "88%", label: "of live hotspots classified correctly, on months the model never saw" },
+          { value: "13.1%", label: "trend error after harmonization, vs 878% for raw splicing" },
+          { value: "9.4×", label: "more hotspots seen by VIIRS than MODIS over Saudi Arabia" },
+        ],
+        primary: { label: "Live app", href: LINKS.fireGuardianLive },
+        secondary: { label: "Code", href: LINKS.fireGuardianCode },
+        image: { ...IMAGES.fireGuardian, alt: "Fire Guardian's live map of Saudi Arabia: classified fires, a selected fire in the Eastern Province and the evidence for it" },
+        phone: { ...SHOTS.fireGuardian, alt: "Fire Guardian on a phone: live fires on the satellite map of Saudi Arabia" },
+        credits: {
+          mine: "The platform end to end: the MODIS and VIIRS harmonization pipeline, the fire-or-industry classifier, the API and the web app",
+          theirs: "Team NovaShift: the thermal-signature and day-ahead models, and SAFIRE, the prototype it grew from",
+        },
+        role: "Data pipeline, classifier, API and web app. Teammates built the thermal-signature and day-ahead models",
+        story: [
+          "NASA has watched fires from space with MODIS since 2000 and with the sharper VIIRS since 2012. Over Saudi Arabia the two disagree badly: VIIRS records 9.4 times more hotspots, because most burning here is small farm and waste fires that MODIS's 1 km pixels miss. Splice the two records together and every long-term trend breaks, just as MODIS reaches the end of its mission",
+          "There's a second problem: most hotspots over the Kingdom aren't fires. Gas flares, refineries, power plants and factories are hot too, and in our test period 57% of detections were industrial or offshore heat. Treat every hotspot as a fire and any map or forecast built on top of it is wrong",
+          "Fire Guardian solves both. A Python pipeline cleans 629,262 detections, clips them to the real borders, masks flares and industrial heat in layers, and learns a VIIRS-to-MODIS ratio for each region and calendar month. The result is one fire record from 2001 to today that stays valid after MODIS ends. Live, an API classifies every new NASA detection as vegetation fire, industrial heat or unclear, and the app shows the evidence behind each one",
+          "Built with Team NovaShift for the 2026 NASA Space Apps Challenge, on the challenge Harmonization of MODIS and VIIRS Hot Spots",
+        ],
+        highlights: [
+          "A harmonized record with 13.1% leave-one-year-out error, where splicing raw VIIRS onto MODIS gives 878%",
+          "A five-step classifier, strongest evidence first: NASA's own labels for that 500 m spot, industrial heat polygons, heat that returns in 6 or more months, fire history, then a thermal-signature model for places with no history",
+          "Tested on 27,600 detections from months it never saw: 99.96% of industrial heat and 88% of all decided points classified correctly",
+          "A live map refreshed every 10 minutes from NOAA-20/21 VIIRS, with satellite infrared imagery and local weather for any point you tap",
+          "A monthly outlook per province from 14 years of records, an analytics view of the harmonized calendar, and a clearly labelled drone-response simulation",
+          "Models trained in Python and exported to plain JavaScript for the API, with integration tests that check both give the same answers",
+          "English and Arabic, right to left, with a phone layout that feels native. API keys live only in environment variables",
+        ],
+        gallery: [
+          { ...FIRE_GUARDIAN_SCREENS.sources, alt: "The heat sources view: industrial heat points across Saudi Arabia, grouped by type", caption: "Fire or factory: the refineries, power plants and gas flares the satellites also see, named and classified" },
+          { ...FIRE_GUARDIAN_SCREENS.forecast, alt: "The forecast view: provinces shaded by how usual fires are this month", caption: "Monthly outlook: where fires are usual this month and next, per province" },
+          { ...FIRE_GUARDIAN_SCREENS.analytics, alt: "The analytics view: the harmonized MODIS and VIIRS fire calendar", caption: "The harmonized MODIS and VIIRS fire calendar, 2001 to today" },
+          { ...FIRE_GUARDIAN_SCREENS.aiModel, alt: "The model validation view with accuracy figures", caption: "Every model checked against held-out NASA labels, in the app" },
+          { ...FIRE_GUARDIAN_SCREENS.drones, alt: "The drone response concept page with a simulated drone over a fire", caption: "Drone response concept, clearly labelled as a simulation" },
+          { ...FIRE_GUARDIAN_SCREENS.phones, alt: "Three phones showing live fires, heat sources and the drone page", caption: "On a phone: live fires, heat sources and the drone page" },
+        ],
+      },
+      {
         id: "scinvites",
-        label: "01 · Full-stack platform",
+        label: "02 · Full-stack platform",
         featured: true,
         title: "SCinvites",
         description:
@@ -97,7 +147,7 @@ const en: Content = {
       },
       {
         id: "pairing-board",
-        label: "02 · Real-world tool",
+        label: "03 · Real-world tool",
         title: "Pairing Board",
         description:
           "Chess players crowd around printed sheets to find their board. Paste a tournament link, type your name, and get your board, colour and opponent in seconds",
@@ -116,28 +166,6 @@ const en: Content = {
           "A failed background refresh keeps the last good pairings on screen instead of wiping them",
           "Shareable links: the tournament ID lives in the URL, so a link opens straight to that event",
           "No framework and no build step. Mobile-first",
-        ],
-      },
-      {
-        id: "eloria",
-        label: "03 · Full-stack",
-        title: "Eloria Story v2",
-        description:
-          "A publishing site for an Arabic novelist, moved onto a real backend: Postgres with row-level security, author sign-in, cover storage and email alerts for readers",
-        tech: ["Supabase", "PostgreSQL", "Auth", "Row-level security", "JavaScript"],
-        primary: { label: "Live site", href: LINKS.eloriaLive },
-        secondary: { label: "Code", href: LINKS.eloriaCode },
-        image: { ...IMAGES.eloria, alt: "Eloria Story library page" },
-        phone: { ...SHOTS.eloria, alt: "Eloria Story's home page on a phone" },
-        story: [
-          "A self-publishing site for an Arabic novelist: a library, novel pages, a reader with font controls and a reading-progress bar, quotes and an about page",
-          "Version one kept everything in a JSON file committed through the GitHub API. Version two keeps the reading experience and moves it onto a real backend: Postgres tables, Supabase Auth for the author, covers in Storage, and row-level security deciding who can write",
-        ],
-        highlights: [
-          "The author edits everything in place. Edits are debounced and synced, and removed rows are deleted on the server",
-          "Readers subscribe, the author approves them, and they get an email when a new chapter is out. Nothing is announced twice",
-          "No secrets in the front end: the public key is public by design and the database policies enforce access",
-          "Full JSON export and import for backups",
         ],
       },
       {
@@ -168,37 +196,77 @@ const en: Content = {
     eyebrow: "Credentials",
     title: "Always",
     accent: "learning",
-    body: "Professional certifications, each with its credential ID",
-    items: [
+    body: "Professional certifications with their credential IDs, and the hackathons I've competed in",
+    groups: [
       {
-        id: "ibm",
-        issuer: "IBM · Coursera",
-        title: "Full Stack Software Developer",
-        kind: "Professional certificate · 15 courses",
-        issued: "September 17, 2026",
-        credentialLabel: "Credential ID",
-        credentialId: "ZYDXA0Y9YY1V",
-        links: [
-          { label: "Verify", href: LINKS.ibmVerify },
-          { label: "Full size", href: LINKS.ibmImage },
+        id: "professional",
+        label: "Professional certifications",
+        items: [
+          {
+            id: "ibm",
+            issuer: "IBM · Coursera",
+            title: "Full Stack Software Developer",
+            kind: "Professional certificate · 15 courses",
+            issued: "September 17, 2026",
+            credentialLabel: "Credential ID",
+            credentialId: "ZYDXA0Y9YY1V",
+            links: [
+              { label: "Verify", href: LINKS.ibmVerify },
+              { label: "Full size", href: LINKS.ibmImage },
+            ],
+            image: { ...IMAGES.ibm, alt: "IBM Full Stack Software Developer professional certificate" },
+            about:
+              "Fifteen courses on application development and cloud: HTML, CSS and JavaScript, React, Node.js and Express, Python, Flask and Django, SQL and NoSQL, Docker, Kubernetes and OpenShift, microservices, serverless and CI/CD. It ends with a capstone and a SaaS application deployed with cloud-native methods",
+            list: { label: "Courses", items: IBM_COURSES, ltr: true },
+          },
+          {
+            id: "ine",
+            issuer: "INE Security",
+            title: "Certified Professional Penetration Tester (eCPPT)",
+            kind: "Professional certification",
+            issued: "September 17, 2026",
+            credentialLabel: "Certification ID",
+            credentialId: "194431871",
+            links: [{ label: "Full size", href: LINKS.ineImage }],
+            image: { ...IMAGES.ine, alt: "INE Security eCPPT certificate" },
+            about:
+              "INE Security's professional penetration testing certification, earned through a hands-on practical exam. It shapes how I build: I write web applications knowing how they get attacked",
+          },
         ],
-        image: { ...IMAGES.ibm, alt: "IBM Full Stack Software Developer professional certificate" },
-        about:
-          "Fifteen courses on application development and cloud: HTML, CSS and JavaScript, React, Node.js and Express, Python, Flask and Django, SQL and NoSQL, Docker, Kubernetes and OpenShift, microservices, serverless and CI/CD. It ends with a capstone and a SaaS application deployed with cloud-native methods",
-        list: { label: "Courses", items: IBM_COURSES, ltr: true },
       },
       {
-        id: "ine",
-        issuer: "INE Security",
-        title: "Certified Professional Penetration Tester (eCPPT)",
-        kind: "Professional certification",
-        issued: "September 17, 2026",
-        credentialLabel: "Certification ID",
-        credentialId: "194431871",
-        links: [{ label: "Full size", href: LINKS.ineImage }],
-        image: { ...IMAGES.ine, alt: "INE Security eCPPT certificate" },
-        about:
-          "INE Security's professional penetration testing certification, earned through a hands-on practical exam. It shapes how I build: I write web applications knowing how they get attacked",
+        id: "hackathons",
+        label: "Hackathons",
+        items: [
+          {
+            id: "nasa-space-apps",
+            issuer: "NASA Space Apps Challenge",
+            title: "Galactic Problem Solver",
+            kind: "Global hackathon · Team NovaShift",
+            issued: "November 14–15, 2026",
+            links: [
+              { label: "See Fire Guardian", href: "#p-fireguardian" },
+              { label: "Full size", href: LINKS.nasaImage },
+            ],
+            image: { ...IMAGES.nasa, alt: "NASA Space Apps Challenge 2026 Galactic Problem Solver certificate" },
+            about:
+              "Awarded for taking part in the 2026 NASA Space Apps Challenge, NASA's global hackathon. Our team, NovaShift, took on the challenge Harmonization of MODIS and VIIRS Hot Spots and built Fire Guardian: live wildfire monitoring for Saudi Arabia that merges both satellites' fire records and tells real fires apart from industrial heat",
+          },
+          {
+            id: "miyahthon",
+            issuer: "Saudi Water Innovation Center",
+            title: "MiyahThon 3 Water Hackathon",
+            kind: "Bootcamp · Rabigh",
+            issued: "October 13–15, 2026",
+            links: [
+              { label: "Event photos", href: `${galleryHref("en")}#miyahthon` },
+              { label: "Full size", href: LINKS.miyahthonImage },
+            ],
+            image: { ...IMAGES.miyahthon, alt: "MiyahThon 3 certificate of participation from the Saudi Water Innovation Center" },
+            about:
+              "A certificate of participation from the Saudi Water Innovation Center for the MiyahThon 3 bootcamp in Rabigh: three days of hands-on learning and teamwork, turning ideas into solutions that improve technology and efficiency in the water sector",
+          },
+        ],
       },
     ],
   },

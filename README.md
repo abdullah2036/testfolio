@@ -33,7 +33,7 @@ The studio and its API (`app/(root)/studio/page.dev.tsx`, `app/(root)/api/galler
 | `app/[lang]/gallery/page.tsx` | Gallery page |
 | `components/Hero.tsx` | Headline and the looping mosaic of phone screenshots and certificates (each tile links to its card) |
 | `components/Tape.tsx` | The crossed "caution tape" of tools |
-| `components/Projects.tsx`, `Certificates.tsx` | Timelines; SCinvites first as the case study |
+| `components/Projects.tsx`, `Certificates.tsx` | Timelines. Featured projects (Fire Guardian, SCinvites) lead full width; certificates are grouped (professional, hackathons) with a labelled line between |
 | `components/About.tsx`, `Beyond.tsx`, `Contact.tsx` | Understand / Build / Ship, the gallery preview, contact |
 | `components/GalleryView.tsx` | Filters, featured photo, masonry, and the photo viewer (keyboard, swipe) |
 | `components/Motion.tsx` | Reveals, timeline progress, card glow, nav state. CSS does the motion; reduced motion is respected |

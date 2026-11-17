@@ -8,6 +8,8 @@ export type Project = {
   id: string;
   label: string;
   featured?: boolean;
+  /** Replaces the section's featured badge on this card. */
+  badge?: string;
   title: string;
   description: string;
   tech: string[];
@@ -24,6 +26,8 @@ export type Project = {
   role?: string;
   story: string[];
   highlights: string[];
+  /** Extra screenshots, shown with captions in the detail card. */
+  gallery?: (ImageInfo & { caption: string })[];
 };
 
 export type Certificate = {
@@ -32,8 +36,10 @@ export type Certificate = {
   title: string;
   kind: string;
   issued: string;
-  credentialLabel: string;
-  credentialId: string;
+  /** Hackathon certificates have no credential ID. */
+  credentialLabel?: string;
+  credentialId?: string;
+  /** Links starting with "#" stay on the page; the rest open in a new tab. */
   links: LinkItem[];
   image: ImageInfo;
   about: string;
@@ -59,6 +65,7 @@ export type Content = {
     mine: string;
     theirs: string;
     view: string;
+    screens: string;
   };
   nav: {
     wordmark: string;
@@ -101,7 +108,8 @@ export type Content = {
     steps: { title: string; text: string }[];
   };
   beyond: Section & { cta: string; empty: string };
-  certificates: Section & { items: Certificate[] };
+  /** Groups share one timeline, split by a labelled line. */
+  certificates: Section & { groups: { id: string; label: string; items: Certificate[] }[] };
   contact: Section & {
     email: string;
     cta: string;

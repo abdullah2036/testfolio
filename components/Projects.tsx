@@ -72,7 +72,7 @@ export default function Projects({ work, arrows, ui, locale }: Props) {
           <div className="pcard__body">
             <p className="pcard__label">
               <span>{p.label}</span>
-              {featured && <span className="badge">{work.featuredBadge}</span>}
+              {featured && <span className="badge">{p.badge ?? work.featuredBadge}</span>}
             </p>
             <h3 className="pcard__title">{p.title}</h3>
             <p className="pcard__desc">{p.description}</p>
@@ -167,6 +167,33 @@ export default function Projects({ work, arrows, ui, locale }: Props) {
                 {para}
               </p>
             ))}
+            {p.stats && (
+              <dl className="stats sheet__stats">
+                {p.stats.map((s) => (
+                  <div key={s.label} className="stats__item">
+                    <dt>{s.value}</dt>
+                    <dd>{s.label}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {p.gallery && (
+              <>
+                <h4 className="sheet__h">{ui.screens}</h4>
+                <ul className="shots">
+                  {p.gallery.map((g) => (
+                    <li key={g.src}>
+                      <figure className="shots__item">
+                        <a className="shots__img" href={g.src} target="_blank" rel="noopener">
+                          <Image src={g.src} alt={g.alt} width={g.width} height={g.height} sizes="(min-width: 900px) 400px, 100vw" />
+                        </a>
+                        <figcaption>{g.caption}</figcaption>
+                      </figure>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             <h4 className="sheet__h">{ui.highlights}</h4>
             <ul className="sheet__list">
               {p.highlights.map((h) => (
